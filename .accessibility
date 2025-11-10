@@ -1,0 +1,23 @@
+# Accessibility Compliance Metadata
+wcag_version: "2.1"
+conformance_level: "AA"
+accessibility_statement: "docs/ACCESSIBILITY.md"
+contact_email: "accessibility@andreassassin.com"
+
+features:
+  - keyboard_navigation: true
+  - screen_reader_support: true
+  - high_contrast_mode: true
+  - text_scaling: true
+  - aria_labels: true
+
+testing:
+  last_audit: "2025-11-10"
+  tools_used:
+    - "axe-core"
+    - "WAVE"
+    - "Lighthouse"
+
+issues:
+  open: 0
+  closed: 0

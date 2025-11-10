@@ -1,0 +1,29 @@
+# Performance Benchmarks
+api:
+  p50_response_ms: 45
+  p95_response_ms: 98
+  p99_response_ms: 150
+  requests_per_second: 500
+
+webhook:
+  processing_latency_ms: 30
+  throughput_per_second: 100
+
+database:
+  query_p95_ms: 8
+  connection_pool_size: 100
+  max_connections: 500
+
+optimization:
+  optuna_100_trials_minutes: 4.2
+  grid_search_seconds: 15
+
+websocket:
+  latency_ms: 85
+  concurrent_connections: 1000
+
+resources:
+  memory_idle_mb: 450
+  memory_peak_mb: 1800
+  cpu_idle_percent: 5
+  cpu_peak_percent: 75

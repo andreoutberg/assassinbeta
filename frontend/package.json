@@ -1,6 +1,30 @@
 {
   "name": "andre-assassin-dashboard",
   "version": "0.2.0",
+  "description": "High Win-Rate Trading System Dashboard",
+  "author": "Andre Assassin Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andreoutberg/assassinbeta.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andreoutberg/assassinbeta/issues"
+  },
+  "homepage": "https://github.com/andreoutberg/assassinbeta#readme",
+  "keywords": [
+    "trading",
+    "optuna",
+    "optimization",
+    "high-win-rate",
+    "tradingview",
+    "bybit",
+    "ccxt"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
