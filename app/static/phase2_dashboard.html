@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase II Dashboard - Andre Assassin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #8892b0;
+            font-size: 1rem;
+        }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #8892b0;
+            font-size: 1rem;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            color: #00d4ff;
+        }
+
+        .tab.active {
+            color: #00ff88;
+            border-bottom-color: #00ff88;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            color: #00d4ff;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-phase1 { background: rgba(255, 165, 0, 0.2); color: #ffa500; }
+        .badge-phase2 { background: rgba(0, 212, 255, 0.2); color: #00d4ff; }
+        .badge-phase3 { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+        /* Stat Cards */
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #8892b0;
+            font-size: 0.9rem;
+        }
+
+        .stat-green { color: #00ff88; }
+        .stat-blue { color: #00d4ff; }
+        .stat-orange { color: #ffa500; }
+
+        /* Strategy Cards */
+        .strategy-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .strategy-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-label {
+            color: #8892b0;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Signal List */
+        .signal-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .signal-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .signal-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .signal-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .signal-symbol {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .signal-meta {
+            color: #8892b0;
+            font-size: 0.85rem;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #8892b0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error State */
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            color: #ff6b6b;
+        }
+
+        /* Refresh Button */
+        .btn-refresh {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            color: #8892b0;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Phase II Dashboard</h1>
+            <p class="subtitle">Data-Driven Strategy Optimization System</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">Overview</button>
+            <button class="tab" onclick="showTab('signals')">Signals</button>
+            <button class="tab" onclick="showTab('strategies')">Strategy Performance</button>
+            <button class="tab" onclick="showTab('system')">System Health</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview-tab" class="tab-content active">
+            <div class="grid grid-4">
+                <div class="stat-card">
+                    <div class="stat-value stat-blue" id="total-signals">-</div>
+                    <div class="stat-label">Total Signals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value stat-orange" id="phase1-count">-</div>
+                    <div class="stat-label">Phase I</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value stat-blue" id="phase2-count">-</div>
+                    <div class="stat-label">Phase II</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value stat-green" id="phase3-count">-</div>
+                    <div class="stat-label">Phase III</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Recent Signals</h2>
+                    <button class="btn-refresh" onclick="loadOverview()">Refresh</button>
+                </div>
+                <div id="recent-signals" class="signal-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading signals...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signals Tab -->
+        <div id="signals-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">All Signals</h2>
+                    <button class="btn-refresh" onclick="loadAllSignals()">Refresh</button>
+                </div>
+                <div id="all-signals-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading all signals...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategies Tab -->
+        <div id="strategies-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Select Signal</h2>
+                </div>
+                <select id="strategy-signal-select" onchange="loadStrategyPerformance()" style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #e0e0e0; border-radius: 6px; margin-bottom: 1rem;">
+                    <option value="">Select a signal...</option>
+                </select>
+            </div>
+
+            <div id="strategy-performance-grid" class="grid grid-2">
+                <!-- Strategy cards will be populated here -->
+            </div>
+        </div>
+
+        <!-- System Health Tab -->
+        <div id="system-tab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">System Health</h2>
+                    <button class="btn-refresh" onclick="loadSystemHealth()">Refresh</button>
+                </div>
+                <div id="system-health-content">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Checking system health...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let allSignals = [];
+        let currentTab = 'overview';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOverview();
+            loadAllSignals();
+            loadSystemHealth();
+        });
+
+        // Tab switching
+        function showTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            currentTab = tabName;
+
+            // Load data if needed
+            if (tabName === 'strategies' && allSignals.length > 0) {
+                populateStrategySignalSelect();
+            }
+        }
+
+        // Load overview data
+        async function loadOverview() {
+            try {
+                const response = await fetch('/strategies/all-phases');
+                const data = await response.json();
+
+                allSignals = data.summaries;
+
+                // Update phase counts
+                const phase1 = data.summaries.filter(s => s.phase === 'I').length;
+                const phase2 = data.summaries.filter(s => s.phase === 'II').length;
+                const phase3 = data.summaries.filter(s => s.phase === 'III').length;
+
+                document.getElementById('total-signals').textContent = data.summaries.length;
+                document.getElementById('phase1-count').textContent = phase1;
+                document.getElementById('phase2-count').textContent = phase2;
+                document.getElementById('phase3-count').textContent = phase3;
+
+                // Display recent signals (top 10)
+                const recentSignalsDiv = document.getElementById('recent-signals');
+                if (data.summaries.length === 0) {
+                    recentSignalsDiv.innerHTML = '<p style="color: #8892b0; text-align: center; padding: 2rem;">No signals yet. Start trading to see data here.</p>';
+                } else {
+                    recentSignalsDiv.innerHTML = data.summaries.slice(0, 10).map(signal => `
+                        <div class="signal-item" onclick="viewSignalDetail('${signal.symbol}', '${signal.direction}', '${signal.webhook_source}')">
+                            <div class="signal-info">
+                                <div class="signal-symbol">${signal.symbol} ${signal.direction}</div>
+                                <div class="signal-meta">${signal.webhook_source} • ${signal.baseline_completed} baseline trades</div>
+                            </div>
+                            <span class="badge badge-phase${signal.phase.toLowerCase()}">${signal.phase_name}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading overview:', error);
+                document.getElementById('recent-signals').innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        // Load all signals
+        async function loadAllSignals() {
+            try {
+                const response = await fetch('/strategies/all-phases');
+                const data = await response.json();
+
+                allSignals = data.summaries;
+
+                const signalsDiv = document.getElementById('all-signals-list');
+                if (data.summaries.length === 0) {
+                    signalsDiv.innerHTML = '<p style="color: #8892b0; text-align: center; padding: 2rem;">No signals yet.</p>';
+                } else {
+                    signalsDiv.innerHTML = `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Direction</th>
+                                    <th>Source</th>
+                                    <th>Phase</th>
+                                    <th>Baseline Trades</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.summaries.map(signal => `
+                                    <tr onclick="viewSignalDetail('${signal.symbol}', '${signal.direction}', '${signal.webhook_source}')" style="cursor: pointer;">
+                                        <td><strong>${signal.symbol}</strong></td>
+                                        <td>${signal.direction}</td>
+                                        <td>${signal.webhook_source}</td>
+                                        <td><span class="badge badge-phase${signal.phase.toLowerCase()}">${signal.phase_name}</span></td>
+                                        <td>${signal.baseline_completed}</td>
+                                        <td style="color: #8892b0; font-size: 0.85rem;">${signal.description}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                }
+
+                // Update strategy signal selector
+                if (currentTab === 'strategies') {
+                    populateStrategySignalSelect();
+                }
+            } catch (error) {
+                console.error('Error loading signals:', error);
+                document.getElementById('all-signals-list').innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        // Populate strategy signal selector
+        function populateStrategySignalSelect() {
+            const select = document.getElementById('strategy-signal-select');
+            select.innerHTML = '<option value="">Select a signal...</option>' +
+                allSignals.map(s => `<option value="${s.symbol}|${s.direction}|${s.webhook_source}">${s.symbol} ${s.direction} (${s.webhook_source})</option>`).join('');
+        }
+
+        // Load strategy performance
+        async function loadStrategyPerformance() {
+            const select = document.getElementById('strategy-signal-select');
+            const value = select.value;
+
+            if (!value) {
+                document.getElementById('strategy-performance-grid').innerHTML = '';
+                return;
+            }
+
+            const [symbol, direction, webhook_source] = value.split('|');
+
+            try {
+                const response = await fetch(`/strategies/performance/${symbol}/${direction}/${webhook_source}`);
+                const data = await response.json();
+
+                const grid = document.getElementById('strategy-performance-grid');
+
+                if (data.strategies.length === 0) {
+                    grid.innerHTML = '<p style="color: #8892b0; grid-column: 1 / -1; text-align: center; padding: 2rem;">No strategy data yet - still in Phase I</p>';
+                    return;
+                }
+
+                grid.innerHTML = data.strategies.map(strategy => `
+                    <div class="strategy-card">
+                        <div class="strategy-header">
+                            <div class="strategy-name">${strategy.strategy_name}</div>
+                            ${strategy.is_eligible_phase3 ? '<span class="badge badge-phase3">Phase III Ready</span>' : '<span class="badge badge-phase2">Testing</span>'}
+                        </div>
+                        <div class="strategy-metrics">
+                            <div class="metric">
+                                <div class="metric-label">Risk/Reward</div>
+                                <div class="metric-value" style="color: ${strategy.risk_reward >= 1.0 ? '#00ff88' : '#ffa500'};">${strategy.risk_reward.toFixed(2)}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Win Rate</div>
+                                <div class="metric-value" style="color: #00d4ff;">${strategy.win_rate.toFixed(1)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Avg Win</div>
+                                <div class="metric-value" style="color: #00ff88;">+${strategy.avg_win.toFixed(2)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Avg Loss</div>
+                                <div class="metric-value" style="color: #ff6b6b;">${strategy.avg_loss.toFixed(2)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Avg Duration</div>
+                                <div class="metric-value">${strategy.avg_duration_hours.toFixed(1)}h</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Strategy Score</div>
+                                <div class="metric-value" style="color: #00d4ff;">${strategy.strategy_score.toFixed(3)}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.85rem; color: #8892b0;">
+                            TP: ${strategy.current_params.tp1 ? strategy.current_params.tp1.toFixed(2) + '%' : 'N/A'} •
+                            SL: ${strategy.current_params.sl ? strategy.current_params.sl.toFixed(2) + '%' : 'N/A'}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading strategy performance:', error);
+                document.getElementById('strategy-performance-grid').innerHTML = `<div class="error" style="grid-column: 1 / -1;">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        // Load system health
+        async function loadSystemHealth() {
+            try {
+                const response = await fetch('/strategies/health');
+                const data = await response.json();
+
+                const healthDiv = document.getElementById('system-health-content');
+
+                const statusColor = data.status === 'healthy' ? '#00ff88' : data.status === 'warning' ? '#ffa500' : '#ff6b6b';
+
+                healthDiv.innerHTML = `
+                    <div style="margin-bottom: 2rem;">
+                        <div style="font-size: 2rem; font-weight: 700; color: ${statusColor}; margin-bottom: 0.5rem;">
+                            ${data.status.toUpperCase()}
+                        </div>
+                        <div style="color: #8892b0;">Last checked: ${new Date(data.timestamp).toLocaleString()}</div>
+                    </div>
+
+                    <div class="grid grid-2">
+                        ${Object.entries(data.checks).map(([key, check]) => `
+                            <div class="stat-card" style="text-align: left;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <div style="font-size: 1.1rem; font-weight: 600; color: #00d4ff;">${key.replace(/_/g, ' ').toUpperCase()}</div>
+                                    <span class="badge" style="background: ${check.status === 'up' || check.status === 'ok' ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 165, 0, 0.2)'}; color: ${check.status === 'up' || check.status === 'ok' ? '#00ff88' : '#ffa500'};">${check.status}</span>
+                                </div>
+                                <div style="color: #8892b0; font-size: 0.9rem;">${check.message}</div>
+                                ${check.total_strategies !== undefined ? `<div style="margin-top: 0.5rem; color: #00d4ff;">Total: ${check.total_strategies} | Eligible: ${check.eligible_for_phase3}</div>` : ''}
+                                ${check.total_simulations !== undefined ? `<div style="margin-top: 0.5rem; color: #00d4ff;">${check.total_simulations} simulations</div>` : ''}
+                                ${check.completed_trades !== undefined ? `<div style="margin-top: 0.5rem; color: #00d4ff;">${check.completed_trades} completed</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading system health:', error);
+                document.getElementById('system-health-content').innerHTML = `<div class="error">Error loading health data: ${error.message}</div>`;
+            }
+        }
+
+        // View signal detail
+        function viewSignalDetail(symbol, direction, webhook_source) {
+            // Switch to strategies tab and select this signal
+            showTab('strategies');
+            const select = document.getElementById('strategy-signal-select');
+            select.value = `${symbol}|${direction}|${webhook_source}`;
+            loadStrategyPerformance();
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                loadOverview();
+                loadAllSignals();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+# Core Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Database
+asyncpg==0.29.0
+sqlalchemy==2.0.25
+alembic==1.13.1
+
+# Redis Cache
+redis==5.0.1
+aioredis==2.0.1
+
+# Exchange Integration
+ccxt==4.2.0
+
+# Data Validation & Settings
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# WebSocket Support
+websockets==12.0
+
+# HTTP Client
+httpx==0.25.2
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+email-validator==2.1.0
+
+# JSON Performance
+orjson==3.9.10
+
+# Data Processing
+numpy==1.26.3
+pandas==2.1.4
+ta==0.11.0
+scikit-learn==1.4.0
+
+# Monitoring & Logging
+python-json-logger==2.0.7
+prometheus-client==0.19.0
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+httpx-mock==0.1.0
+
+# Development Tools
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+isort==5.13.2
+
+# Task Queue (optional)
+celery==5.3.4
+flower==2.0.1
+
+# Environment Management
+python-dotenv==1.0.0

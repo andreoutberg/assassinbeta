@@ -1,0 +1,218 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+  DOCKER_REGISTRY: docker.io
+  DOCKER_USERNAME: assassinbeta
+
+jobs:
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting dependencies
+        run: |
+          pip install --upgrade pip
+          pip install black==23.12.1 ruff==0.1.9 mypy==1.7.1
+
+      - name: Check formatting with black
+        run: black --check app/ tests/
+
+      - name: Lint with ruff
+        run: ruff check app/ tests/
+
+      - name: Type check with mypy
+        run: mypy app/ --ignore-missing-imports
+
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: assassin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r app/requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-mock
+
+      - name: Run unit tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/assassin_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test_secret_key_for_ci
+          ENVIRONMENT: test
+        run: |
+          pytest app/tests/unit/ -v --cov=app --cov-report=xml --cov-report=html
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/assassin_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test_secret_key_for_ci
+          ENVIRONMENT: test
+        run: |
+          pytest app/tests/integration/ -v --cov=app --cov-report=xml --cov-report=html --cov-append
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: backend
+          fail_ci_if_error: false
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-coverage-report
+          path: htmlcov/
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run linter
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm test -- --coverage --watchAll=false
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./frontend/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false
+
+  build-docker:
+    name: Build Docker Images
+    needs: [lint, test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build backend image
+        run: |
+          docker build -t ${{ env.DOCKER_USERNAME }}/assassin-backend:${{ github.sha }} \
+                       -t ${{ env.DOCKER_USERNAME }}/assassin-backend:latest \
+                       -f app/Dockerfile \
+                       ./app
+
+      - name: Build frontend image
+        run: |
+          docker build -t ${{ env.DOCKER_USERNAME }}/assassin-frontend:${{ github.sha }} \
+                       -t ${{ env.DOCKER_USERNAME }}/assassin-frontend:latest \
+                       -f frontend/Dockerfile \
+                       ./frontend
+
+      - name: Test Docker Compose
+        run: |
+          docker-compose up -d
+          sleep 30
+          docker-compose ps
+          curl -f http://localhost:8000/health || exit 1
+          curl -f http://localhost:3000 || exit 1
+          docker-compose down
+
+      - name: Push images (main branch only)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ env.DOCKER_USERNAME }}/assassin-backend:${{ github.sha }}
+          docker push ${{ env.DOCKER_USERNAME }}/assassin-backend:latest
+          docker push ${{ env.DOCKER_USERNAME }}/assassin-frontend:${{ github.sha }}
+          docker push ${{ env.DOCKER_USERNAME }}/assassin-frontend:latest
+
+  notify-status:
+    name: Notify Build Status
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'CI/CD Pipeline ${{ job.status }} for ${{ github.repository }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          fields: repo,message,commit,author,workflow

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Testing Dashboard - Andre Assassin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #8892b0;
+            font-size: 0.95rem;
+        }
+
+        /* Collapsible Section */
+        .collapsible {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .collapsible-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .collapsible-title h2 {
+            font-size: 1.25rem;
+            color: #00d4ff;
+        }
+
+        .collapsible-title h3 {
+            font-size: 1.1rem;
+            color: #00ff88;
+        }
+
+        .collapsible-overview {
+            color: #8892b0;
+            font-size: 0.9rem;
+        }
+
+        .collapsible-arrow {
+            font-size: 1.5rem;
+            color: #8892b0;
+            transition: transform 0.3s;
+        }
+
+        .collapsible.open .collapsible-arrow {
+            transform: rotate(90deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible.open .collapsible-content {
+            max-height: 5000px;
+        }
+
+        .collapsible-body {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+        }
+
+        /* Asset Card */
+        .asset-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .asset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .asset-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .asset-price {
+            color: #00d4ff;
+            font-size: 1rem;
+        }
+
+        .strategy-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .strategy-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-winner {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .badge-neutral {
+            background: rgba(255, 255, 255, 0.05);
+            color: #8892b0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .badge-loser {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+
+        /* Strategy Detail */
+        .strategy-detail {
+            background: rgba(255, 255, 255, 0.01);
+            border-left: 3px solid rgba(255, 255, 255, 0.1);
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .strategy-detail.winner {
+            border-left-color: #00ff88;
+        }
+
+        .strategy-name {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .strategy-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.85rem;
+            color: #8892b0;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-label {
+            color: #6b7280;
+        }
+
+        .stat-value {
+            color: #e0e0e0;
+        }
+
+        .positive { color: #00ff88; }
+        .negative { color: #ff4444; }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #8892b0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #8892b0;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #00d4ff 0%, #00ff88 100%);
+            color: #0a0e27;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Parallel Strategy Testing Dashboard</h1>
+        <p class="subtitle">3-Strategy Deep Analysis: Static SL vs Adaptive Trailing vs Early Momentum Filter</p>
+    </div>
+
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh Data</button>
+
+    <div id="dashboard-content">
+        <div class="loading">Loading strategy comparison data...</div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const container = document.getElementById('dashboard-content');
+            container.innerHTML = '<div class="loading">Loading strategy comparison data...</div>';
+
+            try {
+                const response = await fetch('/api/strategies/parallel-comparison');
+                const data = await response.json();
+
+                if (!data.sources || data.sources.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>No parallel strategy data yet</h2>
+                            <p>Waiting for signals to arrive...</p>
+                            <p style="margin-top: 1rem; font-size: 0.9rem;">
+                                When a TradingView webhook arrives, 3 parallel trades will be created automatically.
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                renderDashboard(data.sources);
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state">Error loading data: ${error.message}</div>`;
+            }
+        }
+
+        function renderDashboard(sources) {
+            const container = document.getElementById('dashboard-content');
+            let html = '';
+
+            sources.forEach(source => {
+                html += `
+                    <div class="collapsible" onclick="toggleCollapsible(this)">
+                        <div class="collapsible-header">
+                            <div class="collapsible-title">
+                                <h2>${source.webhook_source}</h2>
+                                <span class="collapsible-overview">${source.overview}</span>
+                            </div>
+                            <span class="collapsible-arrow">▶</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="collapsible-body">
+                                ${renderSymbols(source.symbols)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderSymbols(symbols) {
+            if (symbols.length === 0) return '<p style="color: #8892b0;">No assets yet</p>';
+
+            return symbols.map(symbol => {
+                // Calculate strategy ranking
+                const strats = symbol.strategy_performance;
+                const ranked = [
+                    { name: 'A (Static)', key: 'static', pnl: strats.static.avg_pnl },
+                    { name: 'B (Trailing)', key: 'adaptive_trailing', pnl: strats.adaptive_trailing.avg_pnl },
+                    { name: 'C (Momentum)', key: 'early_momentum', pnl: strats.early_momentum.avg_pnl }
+                ].sort((a, b) => b.pnl - a.pnl);
+
+                const badges = ranked.map((s, idx) => {
+                    const badgeClass = idx === 0 ? 'badge-winner' : (idx === 2 ? 'badge-loser' : 'badge-neutral');
+                    const pnlClass = s.pnl >= 0 ? 'positive' : 'negative';
+                    return `<span class="strategy-badge ${badgeClass}">${s.name}: <span class="${pnlClass}">${s.pnl >= 0 ? '+' : ''}${s.pnl.toFixed(2)}%</span></span>`;
+                }).join('');
+
+                return `
+                    <div class="collapsible" onclick="event.stopPropagation(); toggleCollapsible(this)">
+                        <div class="collapsible-header">
+                            <div class="collapsible-title">
+                                <h3>${symbol.symbol}</h3>
+                                <span class="asset-price">$${(symbol.live_price || 0).toFixed(8)}</span>
+                            </div>
+                            <span class="collapsible-arrow">▶</span>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="collapsible-body">
+                                <div class="strategy-badges">${badges}</div>
+                                ${renderTestGroups(symbol.test_groups)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTestGroups(groups) {
+            if (groups.length === 0) return '<p style="color: #8892b0;">No trades yet</p>';
+
+            return groups.map(group => {
+                const strategies = group.strategies;
+
+                // Find winner
+                let winner = null;
+                let maxPnl = -Infinity;
+                Object.entries(strategies).forEach(([key, data]) => {
+                    if (data.pnl_pct > maxPnl) {
+                        maxPnl = data.pnl_pct;
+                        winner = key;
+                    }
+                });
+
+                return `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+                            Signal: ${new Date(group.entry_time).toLocaleString()} • ${group.direction} @ $${group.entry_price.toFixed(8)}
+                        </div>
+                        ${renderStrategy('Strategy A: Static SL', strategies.static, winner === 'static')}
+                        ${renderStrategy('Strategy B: Adaptive Trailing', strategies.adaptive_trailing, winner === 'adaptive_trailing')}
+                        ${renderStrategy('Strategy C: Early Momentum', strategies.early_momentum, winner === 'early_momentum')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderStrategy(name, data, isWinner) {
+            if (!data) return `<div class="strategy-detail"><div class="strategy-name">${name}</div><div class="strategy-stats">No data</div></div>`;
+
+            const pnlClass = data.pnl_pct >= 0 ? 'positive' : 'negative';
+            const winnerClass = isWinner ? 'winner' : '';
+
+            // Build specific stats based on strategy
+            let specificStats = '';
+            if (data.early_momentum_detected !== null) {
+                specificStats = data.early_momentum_detected
+                    ? `Early momentum: ✓ ${data.early_momentum_time?.toFixed(1)}min`
+                    : 'No early momentum';
+            } else if (data.trailing_updates !== null) {
+                specificStats = `Trail updates: ${data.trailing_updates || 0} • State: ${data.momentum_state || 'pre_tp1'}`;
+            } else {
+                specificStats = `Static SL: ${data.sl_hit ? '🛑 Hit' : '✓ Safe'}`;
+            }
+
+            const tpStatus = `TP: ${data.tp1_hit ? '1' : ''}${data.tp2_hit ? ' 2' : ''}${data.tp3_hit ? ' 3' : ''} ${!data.tp1_hit && !data.tp2_hit && !data.tp3_hit ? 'None' : ''}`;
+
+            return `
+                <div class="strategy-detail ${winnerClass}">
+                    <div class="strategy-name">${name} ${isWinner ? '🏆' : ''}</div>
+                    <div class="strategy-stats">
+                        <span class="stat">
+                            <span class="stat-label">PnL:</span>
+                            <span class="stat-value ${pnlClass}">${data.pnl_pct >= 0 ? '+' : ''}${data.pnl_pct.toFixed(2)}%</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">${tpStatus}</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">${specificStats}</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">Time:</span>
+                            <span class="stat-value">${data.minutes_active.toFixed(0)}min</span>
+                        </span>
+                        <span class="stat">
+                            <span class="stat-label">Status:</span>
+                            <span class="stat-value">${data.status}</span>
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleCollapsible(element) {
+            element.classList.toggle('open');
+        }
+
+        // Auto-refresh every 10 seconds
+        setInterval(loadData, 10000);
+
+        // Initial load
+        loadData();
+    </script>
+</body>
+</html>

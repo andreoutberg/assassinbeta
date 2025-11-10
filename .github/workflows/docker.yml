@@ -1,0 +1,264 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOCKER_REGISTRY: docker.io
+  GHCR_REGISTRY: ghcr.io
+  DOCKER_USERNAME: assassinbeta
+
+jobs:
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    outputs:
+      backend-image: ${{ steps.backend-meta.outputs.tags }}
+      frontend-image: ${{ steps.frontend-meta.outputs.tags }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:latest
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract backend metadata
+        id: backend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/assassin-backend
+            ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/assassin-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract frontend metadata
+        id: frontend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/assassin-frontend
+            ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/assassin-frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.backend-meta.outputs.tags }}
+          labels: ${{ steps.backend-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.backend-meta.outputs.version }}
+
+      - name: Build frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.frontend-meta.outputs.version }}
+
+      - name: Run Trivy vulnerability scanner on backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/assassin-backend:${{ steps.backend-meta.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-backend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy vulnerability scanner on frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/assassin-frontend:${{ steps.frontend-meta.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-frontend-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: |
+            trivy-backend-results.sarif
+            trivy-frontend-results.sarif
+
+      - name: Generate SBOM for backend
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/assassin-backend:${{ steps.backend-meta.outputs.version }}
+          artifact-name: sbom-backend.spdx.json
+          output-file: ./sbom-backend.spdx.json
+
+      - name: Generate SBOM for frontend
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_USERNAME }}/assassin-frontend:${{ steps.frontend-meta.outputs.version }}
+          artifact-name: sbom-frontend.spdx.json
+          output-file: ./sbom-frontend.spdx.json
+
+  docker-test:
+    name: Test Docker Compose Stack
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DATABASE_URL=postgresql://postgres:postgres@db:5432/assassin_beta
+          REDIS_URL=redis://redis:6379
+          JWT_SECRET=test_secret_key
+          ENVIRONMENT=test
+          EOF
+
+      - name: Start Docker Compose stack
+        run: |
+          docker-compose pull
+          docker-compose up -d
+          docker-compose ps
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for backend..."
+          timeout 60 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+
+          echo "Waiting for frontend..."
+          timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+
+      - name: Test backend API
+        run: |
+          # Health check
+          curl -f http://localhost:8000/health
+
+          # API docs
+          curl -f http://localhost:8000/docs
+          curl -f http://localhost:8000/redoc
+
+          # Test authentication endpoint
+          curl -X POST http://localhost:8000/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"Test123!@#"}'
+
+      - name: Test frontend
+        run: |
+          # Main page
+          curl -f http://localhost:3000
+
+          # Check for JavaScript bundle
+          curl -f -I http://localhost:3000 | grep -i "content-type"
+
+      - name: Docker Compose logs
+        if: always()
+        run: |
+          docker-compose logs --tail=50
+
+      - name: Stop Docker Compose
+        if: always()
+        run: |
+          docker-compose down -v
+
+  docker-push-summary:
+    name: Docker Push Summary
+    runs-on: ubuntu-latest
+    needs: [docker-build, docker-test]
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Create summary
+        run: |
+          echo "## Docker Images Published 🐳" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Backend Images" >> $GITHUB_STEP_SUMMARY
+          echo "| Registry | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Hub | \`${{ env.DOCKER_USERNAME }}/assassin-backend\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Container Registry | \`ghcr.io/${{ github.repository_owner }}/assassin-backend\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Frontend Images" >> $GITHUB_STEP_SUMMARY
+          echo "| Registry | Image |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Hub | \`${{ env.DOCKER_USERNAME }}/assassin-frontend\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Container Registry | \`ghcr.io/${{ github.repository_owner }}/assassin-frontend\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Pull Commands" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# Docker Hub" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.DOCKER_USERNAME }}/assassin-backend:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.DOCKER_USERNAME }}/assassin-frontend:latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# GitHub Container Registry" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository_owner }}/assassin-backend:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ghcr.io/${{ github.repository_owner }}/assassin-frontend:latest" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: 'Docker images successfully built and pushed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          fields: repo,message,commit,author

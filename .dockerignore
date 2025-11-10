@@ -1,0 +1,189 @@
+# Docker Ignore File - Prevents unnecessary files from being copied to Docker images
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+.hypothesis/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+.virtualenv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn
+
+# Build outputs
+dist/
+build/
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Environment files (security)
+.env
+.env.*
+!.env.example
+.env.local
+.env.production
+.env.development
+
+# Documentation
+*.md
+!README.md
+docs/
+*.txt
+!requirements.txt
+!requirements-*.txt
+
+# Testing
+tests/
+test/
+*.test.js
+*.spec.js
+*.test.ts
+*.spec.ts
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+redis_data/
+backups/
+migrations/
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+.circleci/
+jenkins/
+azure-pipelines.yml
+
+# Scripts (keep essential ones)
+scripts/
+!scripts/health_check.py
+!scripts/init_db.sql
+
+# Monitoring and logs
+monitoring/
+grafana/
+prometheus/
+*.log
+logs/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Archive files
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Certificates (security)
+*.pem
+*.key
+*.crt
+*.cer
+
+# Config files (optional, depending on your needs)
+nginx.conf
+supervisord.conf
+
+# Other project specific
+examples/
+sandbox/
+scratch/
+.serena/
+.claude/
+Beta/
+.worker_pids
+webhook_backups/
+*.broken

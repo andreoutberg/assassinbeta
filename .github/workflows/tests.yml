@@ -1,0 +1,380 @@
+name: Comprehensive Tests
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        type: choice
+        options:
+          - all
+          - integration
+          - load
+          - security
+          - e2e
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20'
+
+jobs:
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' || github.event_name == 'schedule' }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: assassin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          sleep 30
+
+      - name: Wait for services
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:8000/health; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-asyncio requests httpx
+
+      - name: Run integration tests
+        env:
+          API_BASE_URL: http://localhost:8000
+          FRONTEND_URL: http://localhost:3000
+        run: |
+          pytest tests/integration/ -v --tb=short
+
+      - name: Test API endpoints
+        run: |
+          # Health check
+          curl -f http://localhost:8000/health
+
+          # API documentation
+          curl -f http://localhost:8000/docs
+          curl -f http://localhost:8000/redoc
+
+          # Authentication endpoints
+          curl -X POST http://localhost:8000/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"Test123!@#"}'
+
+          # Core endpoints
+          curl -f http://localhost:8000/api/beta/overview
+          curl -f http://localhost:8000/api/metrics/system
+
+      - name: Test Frontend
+        run: |
+          # Check main page
+          curl -f http://localhost:3000
+
+          # Check static assets
+          curl -f http://localhost:3000/static/js/bundle.js || true
+          curl -f http://localhost:3000/static/css/main.css || true
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          docker-compose logs > docker-compose-logs.txt
+          docker ps -a
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-logs
+          path: docker-compose-logs.txt
+
+  load-tests:
+    name: Load & Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'load' || github.event_name == 'schedule' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start application stack
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Create k6 load test script
+        run: |
+          cat > load_test.js << 'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+          import { Rate } from 'k6/metrics';
+
+          const errorRate = new Rate('errors');
+
+          export const options = {
+            stages: [
+              { duration: '2m', target: 10 },  // Ramp up to 10 users
+              { duration: '5m', target: 10 },  // Stay at 10 users
+              { duration: '2m', target: 50 },  // Ramp up to 50 users
+              { duration: '5m', target: 50 },  // Stay at 50 users
+              { duration: '2m', target: 0 },   // Ramp down to 0 users
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<500'], // 95% of requests should be below 500ms
+              errors: ['rate<0.1'], // Error rate should be below 10%
+            },
+          };
+
+          export default function () {
+            const BASE_URL = 'http://localhost:8000';
+
+            // Test health endpoint
+            let res = http.get(`${BASE_URL}/health`);
+            check(res, {
+              'health check status is 200': (r) => r.status === 200,
+            });
+            errorRate.add(res.status !== 200);
+
+            sleep(1);
+
+            // Test API documentation
+            res = http.get(`${BASE_URL}/docs`);
+            check(res, {
+              'docs status is 200': (r) => r.status === 200,
+            });
+            errorRate.add(res.status !== 200);
+
+            sleep(1);
+
+            // Test authentication
+            const payload = JSON.stringify({
+              email: `user${Math.random()}@example.com`,
+              password: 'Test123!@#',
+            });
+
+            const params = {
+              headers: { 'Content-Type': 'application/json' },
+            };
+
+            res = http.post(`${BASE_URL}/api/auth/register`, payload, params);
+            check(res, {
+              'registration status is 200 or 201': (r) => r.status === 200 || r.status === 201,
+            });
+            errorRate.add(res.status !== 200 && res.status !== 201);
+
+            sleep(2);
+          }
+          EOF
+
+      - name: Run k6 load test
+        run: |
+          k6 run --out json=test_results.json load_test.js || true
+
+      - name: Generate HTML report
+        run: |
+          echo "Load test completed. Results saved to test_results.json"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: test_results.json
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'security' || github.event_name == 'schedule' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: |
+          pip install safety bandit[toml]
+          npm install -g snyk
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r app/ -f json -o bandit-report.json || true
+
+      - name: Run Safety check
+        run: |
+          safety check --json > safety-report.json || true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Scan Docker images
+        run: |
+          docker build -t scan-backend -f app/Dockerfile ./app || true
+          docker build -t scan-frontend -f frontend/Dockerfile ./frontend || true
+
+          # Scan with Trivy
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image scan-backend --severity HIGH,CRITICAL || true
+
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image scan-frontend --severity HIGH,CRITICAL || true
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'assassin-beta'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+            --enableExperimental
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            dependency-check-report.html
+
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'e2e' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start application
+        run: |
+          docker-compose up -d
+          sleep 30
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright
+        run: |
+          npm install -D @playwright/test
+          npx playwright install chromium
+
+      - name: Create E2E test
+        run: |
+          cat > e2e.test.js << 'EOF'
+          const { test, expect } = require('@playwright/test');
+
+          test.describe('Assassin Beta E2E Tests', () => {
+            test('should load homepage', async ({ page }) => {
+              await page.goto('http://localhost:3000');
+              await expect(page).toHaveTitle(/Assassin Beta/);
+            });
+
+            test('should navigate to dashboard', async ({ page }) => {
+              await page.goto('http://localhost:3000');
+              await page.click('text=Dashboard');
+              await expect(page).toHaveURL(/.*dashboard/);
+            });
+
+            test('should display API docs', async ({ page }) => {
+              await page.goto('http://localhost:8000/docs');
+              await expect(page).toHaveTitle(/FastAPI/);
+            });
+          });
+          EOF
+
+      - name: Run Playwright tests
+        run: |
+          npx playwright test e2e.test.js --reporter=html
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  test-summary:
+    name: Test Summary
+    needs: [integration-tests, load-tests, security-scan, e2e-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Create test summary
+        run: |
+          echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Load Tests | ${{ needs.load-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "Daily Test Suite Completed",
+              attachments: [{
+                color: '${{ contains(needs.*.result, 'failure') && 'danger' || 'good' }}',
+                text: 'Integration: ${{ needs.integration-tests.result }}\nLoad: ${{ needs.load-tests.result }}\nSecurity: ${{ needs.security-scan.result }}\nE2E: ${{ needs.e2e-tests.result }}'
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
