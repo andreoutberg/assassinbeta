@@ -21,6 +21,7 @@ from app.services.market_data_service import MarketDataService
 from app.services.signal_generator import SignalGenerator
 from app.services.phase_manager import PhaseManager
 from app.services.websocket_manager import WebSocketManager
+from app.services.metrics import metrics_service
 from app.database.database import AsyncSessionLocal
 from app.database.connection import DatabaseManager
 from app.utils.cache import redis_client

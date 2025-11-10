@@ -1,6 +1,6 @@
 # 🎯 Andre Assassin - High Win-Rate Trading System
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-16+-blue)
@@ -15,6 +15,25 @@ Built for traders who want:
 - ✅ **TradingView integration** via webhooks - send signals directly from your charts
 - ✅ **Demo trading** with real Bybit market prices (no real money required)
 - ✅ **Beautiful dashboard** to monitor performance and manage strategies
+
+## 🆕 What's New in v0.2.0
+
+### 📊 Enterprise Monitoring
+- **Optuna Dashboard** - Real-time optimization tracking
+- **Grafana + Prometheus** - Professional metrics and analytics
+- **Multi-channel Alerts** - Never miss important events
+
+### 💎 Modern Frontend
+- **iOS-inspired Design** - Beautiful glassmorphism UI
+- **Dark/Light Mode** - Choose your preferred theme
+- **Mobile Responsive** - Trade from anywhere
+
+### 🚀 Production Ready
+- **Nginx Proxy** - Unified access to all services
+- **Health Monitoring** - Automatic recovery on failures
+- **One-click Deploy** - Get running in minutes
+
+[📖 Read Full Release Notes](./RELEASE_NOTES_v0.2.0.md)
 
 ## 🚀 One-Command Installation
 
@@ -34,14 +53,19 @@ That's it! The installer will:
 
 ## 📋 Table of Contents
 
+- [What's New](#-whats-new-in-v020)
 - [Key Features](#-key-features)
+- [Screenshots](#-screenshots)
 - [Quick Start](#-quick-start)
+- [Architecture](#-architecture)
+- [Service URLs](#-service-urls)
 - [How It Works](#-how-it-works)
 - [TradingView Integration](#-tradingview-integration)
-- [Architecture](#-architecture)
+- [Monitoring](#-monitoring--analytics)
 - [Configuration](#-configuration)
 - [API Documentation](#-api-documentation)
 - [Performance](#-performance)
+- [Deployment](#-deployment)
 - [Roadmap](#-roadmap)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -87,6 +111,41 @@ That's it! The installer will:
 - **Docker Compose** - one-command deployment
 - **GitHub Actions CI/CD** - automated testing and releases
 - **Comprehensive logging** - debug issues quickly
+
+---
+
+## 📸 Screenshots
+
+### Trading Dashboard
+![Dashboard Overview](./docs/screenshots/dashboard.png)
+*Real-time trading metrics with glassmorphism design*
+
+### Optuna Optimization
+![Optuna Dashboard](./docs/screenshots/optuna.png)
+*Live optimization progress and parameter importance*
+
+### Grafana Metrics
+![Grafana Analytics](./docs/screenshots/grafana.png)
+*Professional-grade monitoring and alerting*
+
+### Mobile View
+![Mobile Dashboard](./docs/screenshots/mobile.png)
+*Fully responsive design for trading on the go*
+
+---
+
+## 🌐 Service URLs
+
+After deployment, access your services at:
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| **Dashboard** | `http://your-server/dashboardbeta` | Main trading interface |
+| **Optuna** | `http://your-server/optuna` | Optimization monitoring |
+| **Grafana** | `http://your-server/grafana` | Metrics & analytics |
+| **API** | `http://your-server/api` | REST endpoints |
+| **API Docs** | `http://your-server/api/docs` | Interactive API documentation |
+| **Webhook** | `http://your-server/api/webhook/tradingview` | TradingView integration |
 
 ---
 
@@ -511,6 +570,140 @@ OPTIMIZE_FOR_WIN_RATE=false
 - Max Drawdown: **<25%**
 
 *Note: Past performance doesn't guarantee future results. Always start with demo trading.*
+
+---
+
+## 📊 Monitoring & Analytics
+
+### Optuna Dashboard
+Real-time optimization monitoring at `http://your-server/optuna`
+
+**Features:**
+- Live trial progress visualization
+- Parameter importance analysis
+- Optimization history graphs
+- Parallel coordinate plots
+- Study comparison tools
+
+### Grafana Dashboards
+Professional metrics at `http://your-server/grafana`
+
+**Pre-configured Dashboards:**
+1. **Trading Performance**
+   - Win rate trends
+   - P&L analysis
+   - Strategy comparison
+   - Risk metrics
+
+2. **System Health**
+   - Service uptime
+   - Resource usage
+   - API latency
+   - Database performance
+
+3. **Alerts Configuration**
+   - Strategy degradation
+   - Optimization complete
+   - System errors
+   - Resource thresholds
+
+### Setting Up Monitoring
+
+```bash
+# Import Grafana dashboards
+docker-compose exec grafana grafana-cli admin reset-admin-password newpassword
+
+# Access Grafana
+open http://your-server/grafana
+# Login: admin / newpassword
+
+# Import dashboard templates from
+./grafana/dashboards/
+```
+
+---
+
+## 🚢 Deployment
+
+### Production Deployment
+
+**Quick Deploy to Cloud:**
+```bash
+# Clone on your server
+git clone https://github.com/andreoutberg/andre-assassin.git
+cd andre-assassin
+
+# Run deployment script
+./scripts/deploy.sh
+
+# Follow prompts for:
+# - Domain configuration
+# - SSL certificates
+# - Service passwords
+# - Alert endpoints
+```
+
+**Manual Deployment:**
+```bash
+# 1. Configure environment
+cp .env.example .env.production
+nano .env.production
+
+# 2. Build services
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
+
+# 3. Start services
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# 4. Configure Nginx
+sudo cp nginx/andre-assassin.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/andre-assassin.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# 5. Setup SSL (Let's Encrypt)
+sudo certbot --nginx -d your-domain.com
+```
+
+### Cloud Providers
+
+**DigitalOcean (Recommended):**
+- 4GB Droplet ($24/month)
+- Ubuntu 22.04 LTS
+- [One-Click Deploy](./docs/DEPLOYMENT.md#digitalocean)
+
+**AWS EC2:**
+- t3.medium instance
+- Amazon Linux 2
+- [CloudFormation Template](./aws/cloudformation.yaml)
+
+**Google Cloud:**
+- e2-medium instance
+- Container-Optimized OS
+- [Deployment Manager Config](./gcp/deployment.yaml)
+
+### Monitoring Setup
+
+```bash
+# Enable monitoring stack
+docker-compose -f docker-compose.monitoring.yml up -d
+
+# Configure alerts
+./scripts/setup-alerts.sh
+```
+
+### Backup & Recovery
+
+```bash
+# Automated daily backups
+crontab -e
+# Add: 0 2 * * * /path/to/andre-assassin/scripts/backup.sh
+
+# Manual backup
+./scripts/backup.sh
+
+# Restore from backup
+./scripts/restore.sh backup-2025-11-10.tar.gz
+```
 
 ---
 

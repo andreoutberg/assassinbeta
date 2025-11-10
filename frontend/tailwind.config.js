@@ -1,0 +1,138 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        // Brand colors
+        'gold': {
+          DEFAULT: '#D4AF37',
+          hover: '#b8941f',
+          light: '#E5C458',
+          dark: '#9F8429',
+        },
+        // iOS colors
+        'ios-blue': '#007AFF',
+        'ios-green': '#34C759',
+        'ios-red': '#FF3B30',
+        'ios-orange': '#FF9500',
+        'ios-yellow': '#FFCC00',
+        'ios-teal': '#5AC8FA',
+        'ios-indigo': '#5856D6',
+        // Trading colors
+        'success': '#00b67a',
+        'danger': '#d32f2f',
+        'warning': '#f59e0b',
+        // iOS system grays
+        'gray': {
+          50: '#F2F2F7',
+          100: '#E5E5EA',
+          200: '#D1D1D6',
+          300: '#C7C7CC',
+          400: '#AEAEB2',
+          500: '#8E8E93',
+          600: '#636366',
+          700: '#48484A',
+          800: '#3A3A3C',
+          850: '#2C2C2E',
+          900: '#1C1C1E',
+          950: '#000000',
+        },
+      },
+      fontFamily: {
+        'sf': ['"SF Pro Display"', '"SF Pro Text"', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+      },
+      fontSize: {
+        'caption': ['12px', { lineHeight: '16px', letterSpacing: '-0.01em' }],
+        'body': ['17px', { lineHeight: '22px', letterSpacing: '-0.01em' }],
+        'headline': ['17px', { lineHeight: '22px', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'title3': ['20px', { lineHeight: '25px', letterSpacing: '-0.01em', fontWeight: '600' }],
+        'title2': ['22px', { lineHeight: '28px', letterSpacing: '-0.01em', fontWeight: '700' }],
+        'title1': ['28px', { lineHeight: '34px', letterSpacing: '-0.01em', fontWeight: '700' }],
+        'largeTitle': ['34px', { lineHeight: '41px', letterSpacing: '-0.01em', fontWeight: '700' }],
+      },
+      spacing: {
+        '4.5': '1.125rem',
+        '13': '3.25rem',
+        '15': '3.75rem',
+        '17': '4.25rem',
+        '18': '4.5rem',
+        '19': '4.75rem',
+        '21': '5.25rem',
+        '22': '5.5rem',
+        '23': '5.75rem',
+        '25': '6.25rem',
+        '26': '6.5rem',
+        '27': '6.75rem',
+        '28': '7rem',
+        '30': '7.5rem',
+        '34': '8.5rem',
+        '36': '9rem',
+        '40': '10rem',
+        '44': '11rem',
+        '48': '12rem',
+        '52': '13rem',
+        '56': '14rem',
+        '60': '15rem',
+        '64': '16rem',
+        '68': '17rem',
+        '72': '18rem',
+        '76': '19rem',
+        '80': '20rem',
+      },
+      borderRadius: {
+        'ios-sm': '10px',
+        'ios': '12px',
+        'ios-lg': '16px',
+        'ios-xl': '20px',
+      },
+      boxShadow: {
+        'ios': '0 2px 10px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 0, 0, 0.04)',
+        'ios-hover': '0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 30px rgba(0, 0, 0, 0.06)',
+        'ios-dark': '0 2px 10px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.15)',
+      },
+      backdropBlur: {
+        'xs': '2px',
+        'sm': '4px',
+        'md': '8px',
+        'lg': '12px',
+        'xl': '16px',
+        '2xl': '24px',
+        '3xl': '40px',
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'spin-slow': 'spin 3s linear infinite',
+        'fade-in': 'fadeIn 0.3s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+      },
+      minHeight: {
+        'touch': '44px',
+      },
+      minWidth: {
+        'touch': '44px',
+      },
+    },
+  },
+  plugins: [],
+}

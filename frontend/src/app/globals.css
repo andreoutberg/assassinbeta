@@ -1,0 +1,294 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  :root {
+    --gold: 212, 175, 55;
+    --gold-hover: 184, 148, 31;
+    --success: 0, 182, 122;
+    --danger: 211, 47, 47;
+    --warning: 245, 158, 11;
+    --ios-blue: 0, 122, 255;
+    --ios-green: 52, 199, 89;
+    --background: 255, 255, 255;
+    --foreground: 0, 0, 0;
+    --card: 255, 255, 255;
+    --card-foreground: 0, 0, 0;
+    --popover: 255, 255, 255;
+    --popover-foreground: 0, 0, 0;
+    --primary: 212, 175, 55;
+    --primary-foreground: 255, 255, 255;
+    --secondary: 242, 242, 247;
+    --secondary-foreground: 0, 0, 0;
+    --muted: 242, 242, 247;
+    --muted-foreground: 142, 142, 147;
+    --accent: 212, 175, 55;
+    --accent-foreground: 255, 255, 255;
+    --destructive: 255, 59, 48;
+    --destructive-foreground: 255, 255, 255;
+    --border: 229, 229, 234;
+    --input: 229, 229, 234;
+    --ring: 212, 175, 55;
+    --radius: 12px;
+  }
+
+  .dark {
+    --background: 0, 0, 0;
+    --foreground: 255, 255, 255;
+    --card: 28, 28, 30;
+    --card-foreground: 255, 255, 255;
+    --popover: 28, 28, 30;
+    --popover-foreground: 255, 255, 255;
+    --primary: 212, 175, 55;
+    --primary-foreground: 0, 0, 0;
+    --secondary: 44, 44, 46;
+    --secondary-foreground: 255, 255, 255;
+    --muted: 44, 44, 46;
+    --muted-foreground: 174, 174, 178;
+    --accent: 212, 175, 55;
+    --accent-foreground: 0, 0, 0;
+    --destructive: 255, 69, 58;
+    --destructive-foreground: 255, 255, 255;
+    --border: 58, 58, 60;
+    --input: 58, 58, 60;
+    --ring: 212, 175, 55;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-50 font-sf;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+}
+
+@layer components {
+  /* Glass morphism utilities */
+  .glass {
+    @apply backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-gray-200/50 dark:border-gray-800/50;
+  }
+
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-white/90 dark:bg-gray-900/90 border border-gray-200/60 dark:border-gray-800/60;
+  }
+
+  .glass-subtle {
+    @apply backdrop-blur-md bg-white/50 dark:bg-gray-900/50 border border-gray-200/30 dark:border-gray-800/30;
+  }
+
+  /* iOS-style card component */
+  .card-ios {
+    @apply glass rounded-ios shadow-ios hover:shadow-ios-hover transition-all duration-200 ease-out;
+  }
+
+  .card-ios-dark {
+    @apply glass-strong rounded-ios shadow-ios-dark transition-all duration-200 ease-out;
+  }
+
+  /* iOS-style button */
+  .btn-ios {
+    @apply min-h-touch px-5 py-2.5 rounded-ios font-semibold text-body
+           transition-all duration-200 ease-out active:scale-95
+           flex items-center justify-center gap-2;
+  }
+
+  .btn-ios-primary {
+    @apply btn-ios bg-gold text-white hover:bg-gold-hover
+           shadow-sm hover:shadow-md active:shadow-sm;
+  }
+
+  .btn-ios-secondary {
+    @apply btn-ios glass hover:glass-strong text-gray-900 dark:text-gray-50;
+  }
+
+  .btn-ios-ghost {
+    @apply btn-ios bg-transparent hover:glass text-gray-900 dark:text-gray-50;
+  }
+
+  /* iOS-style badge */
+  .badge-ios {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+           text-caption font-medium transition-all duration-200;
+  }
+
+  .badge-phase-i {
+    @apply badge-ios bg-ios-blue/10 text-ios-blue dark:bg-ios-blue/20;
+  }
+
+  .badge-phase-ii {
+    @apply badge-ios bg-gold/10 text-gold dark:bg-gold/20;
+  }
+
+  .badge-phase-iii {
+    @apply badge-ios bg-ios-green/10 text-ios-green dark:bg-ios-green/20;
+  }
+
+  .badge-direction-long {
+    @apply badge-ios bg-success/10 text-success dark:bg-success/20;
+  }
+
+  .badge-direction-short {
+    @apply badge-ios bg-danger/10 text-danger dark:bg-danger/20;
+  }
+
+  /* iOS-style input */
+  .input-ios {
+    @apply min-h-touch px-4 py-2 rounded-ios glass
+           text-body placeholder:text-gray-400 dark:placeholder:text-gray-600
+           focus:outline-none focus:ring-2 focus:ring-gold/50
+           transition-all duration-200;
+  }
+
+  /* iOS-style select */
+  .select-ios {
+    @apply input-ios pr-10 appearance-none cursor-pointer
+           bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQgNkw4IDEwTDEyIDYiIHN0cm9rZT0iIzZCNzI4MCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=')]
+           bg-[position:right_1rem_center] bg-no-repeat;
+  }
+
+  /* SF Pro text utility */
+  .text-sf {
+    letter-spacing: -0.01em;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-gray-800 rounded-ios;
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-ios::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+
+  .scrollbar-ios::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .scrollbar-ios::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+  }
+
+  .scrollbar-ios::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500 dark:bg-gray-500;
+  }
+
+  /* Tab bar gradient overlay for mobile */
+  .tab-gradient-top {
+    @apply bg-gradient-to-b from-gray-50/95 via-gray-50/80 to-transparent
+           dark:from-gray-950/95 dark:via-gray-950/80 dark:to-transparent;
+  }
+
+  .tab-gradient-bottom {
+    @apply bg-gradient-to-t from-gray-50/95 via-gray-50/80 to-transparent
+           dark:from-gray-950/95 dark:via-gray-950/80 dark:to-transparent;
+  }
+}
+
+@layer utilities {
+  /* Live pulse animation for connection status */
+  .pulse-live {
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(52, 199, 89, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);
+    }
+  }
+
+  /* Gold glow effect */
+  .glow-gold {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3),
+                0 0 40px rgba(212, 175, 55, 0.1);
+  }
+
+  /* Touch feedback */
+  .touch-feedback {
+    @apply transition-all duration-100 active:scale-98 active:opacity-90;
+  }
+
+  /* Safe area padding for iOS devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Backdrop filters for different strengths */
+  .backdrop-ios-light {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  .backdrop-ios-dark {
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+  }
+
+  /* Gradient text */
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-gold via-gold-light to-gold bg-clip-text text-transparent;
+  }
+
+  .text-gradient-success {
+    @apply bg-gradient-to-r from-success via-ios-green to-success bg-clip-text text-transparent;
+  }
+
+  .text-gradient-danger {
+    @apply bg-gradient-to-r from-danger via-ios-red to-danger bg-clip-text text-transparent;
+  }
+
+  /* Chart grid lines */
+  .chart-grid-line {
+    @apply stroke-gray-200 dark:stroke-gray-800 stroke-[0.5] opacity-50;
+  }
+
+  /* Focus visible utilities */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-gold focus-visible:ring-offset-2
+           focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950;
+  }
+}
+
+/* iOS HIG animations */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    scroll-behavior: smooth;
+  }
+
+  .animate-in {
+    animation: fadeIn 0.3s ease-out, slideUp 0.3s ease-out;
+  }
+}
+
+/* Dark mode transitions */
+* {
+  @apply transition-colors duration-200;
+}

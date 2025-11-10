@@ -1,0 +1,232 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* SF Pro Font Import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --gold: #D4AF37;
+    --gold-hover: #b8941f;
+    --gold-light: #E5C458;
+    --gold-dark: #9F8429;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* iOS Style Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500 dark:bg-gray-500;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Base */
+  .glass {
+    @apply backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10;
+  }
+
+  .glass-hover {
+    @apply hover:bg-white/80 dark:hover:bg-gray-900/80 transition-all duration-300;
+  }
+
+  /* iOS Card */
+  .ios-card {
+    @apply glass rounded-ios shadow-ios dark:shadow-ios-dark;
+  }
+
+  /* iOS Button */
+  .ios-button {
+    @apply px-5 py-2.5 rounded-ios font-medium text-body
+           transition-all duration-200 transform active:scale-95
+           min-h-touch min-w-touch flex items-center justify-center;
+  }
+
+  .ios-button-primary {
+    @apply ios-button bg-ios-blue text-white hover:bg-opacity-90;
+  }
+
+  .ios-button-gold {
+    @apply ios-button bg-gold text-gray-900 hover:bg-gold-hover;
+  }
+
+  .ios-button-secondary {
+    @apply ios-button glass hover:bg-white/90 dark:hover:bg-gray-800/90;
+  }
+
+  /* iOS Input */
+  .ios-input {
+    @apply w-full px-4 py-3 rounded-ios glass
+           placeholder-gray-500 dark:placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-gold/50
+           transition-all duration-200;
+  }
+
+  /* iOS Badge */
+  .ios-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-caption font-medium;
+  }
+
+  /* Status Colors */
+  .status-success {
+    @apply bg-ios-green/20 text-ios-green dark:bg-ios-green/10;
+  }
+
+  .status-danger {
+    @apply bg-ios-red/20 text-ios-red dark:bg-ios-red/10;
+  }
+
+  .status-warning {
+    @apply bg-ios-orange/20 text-ios-orange dark:bg-ios-orange/10;
+  }
+
+  .status-info {
+    @apply bg-ios-blue/20 text-ios-blue dark:bg-ios-blue/10;
+  }
+
+  /* Gold Accent */
+  .gold-accent {
+    @apply text-gold hover:text-gold-hover transition-colors duration-200;
+  }
+
+  .gold-glow {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  }
+
+  /* Animations */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  /* Tab Indicator */
+  .tab-indicator {
+    @apply absolute bottom-0 left-0 h-0.5 bg-gold transition-all duration-300;
+  }
+
+  /* iOS Toggle */
+  .ios-toggle {
+    @apply relative inline-flex h-7 w-12 items-center rounded-full
+           bg-gray-300 dark:bg-gray-700 transition-colors duration-200
+           focus:outline-none focus:ring-2 focus:ring-gold/50;
+  }
+
+  .ios-toggle-thumb {
+    @apply inline-block h-6 w-6 transform rounded-full bg-white
+           transition-transform duration-200 shadow-sm;
+  }
+
+  /* Loading Skeleton */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 dark:bg-gray-800 rounded-ios;
+  }
+
+  /* Smooth Transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-[cubic-bezier(0.42,0,0.58,1)];
+  }
+}
+
+@layer utilities {
+  /* iOS Safe Areas */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Text Selection */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+
+  /* Backdrop Filters */
+  .backdrop-blur-ios {
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  /* Gold Gradient */
+  .gold-gradient {
+    background: linear-gradient(135deg, #D4AF37 0%, #E5C458 100%);
+  }
+
+  .gold-gradient-text {
+    @apply bg-clip-text text-transparent;
+    background: linear-gradient(135deg, #D4AF37 0%, #E5C458 100%);
+  }
+}
+
+/* Custom Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

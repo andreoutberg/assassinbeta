@@ -55,6 +55,9 @@ class AlertType(str, Enum):
     TRADE_EXECUTION = "trade_execution"
     SYSTEM_HEALTH = "system_health"
     DATABASE_ERROR = "database_error"
+    OPTIMIZATION_COMPLETE = "optimization_complete"
+    STRATEGY_DEGRADATION = "strategy_degradation"
+    PHASE_TRANSITION = "phase_transition"
 
 
 class AlertingService:
@@ -393,6 +396,81 @@ class AlertingService:
                 "metric": metric,
                 "current_value": current_value,
                 "threshold": threshold,
+            },
+        )
+
+    async def alert_optimization_complete(
+        self,
+        symbol: str,
+        direction: str,
+        webhook_source: str,
+        win_rate: float,
+        rr_ratio: float,
+        trials: int,
+    ):
+        """Alert when Optuna optimization completes"""
+        await self.send_alert(
+            alert_type=AlertType.OPTIMIZATION_COMPLETE,
+            severity=AlertSeverity.INFO,
+            message=f"✅ Optimization complete: {webhook_source} - {symbol} {direction}",
+            data={
+                "webhook_source": webhook_source,
+                "symbol": symbol,
+                "direction": direction,
+                "best_win_rate": f"{win_rate:.1f}%",
+                "best_rr_ratio": f"{rr_ratio:.2f}",
+                "trials_completed": trials,
+                "action": "Strategy ready for Phase III promotion",
+            },
+        )
+
+    async def alert_strategy_degradation(
+        self,
+        symbol: str,
+        direction: str,
+        webhook_source: str,
+        current_wr: float,
+        expected_wr: float,
+        recent_losses: int,
+    ):
+        """Alert when strategy performance degrades"""
+        await self.send_alert(
+            alert_type=AlertType.STRATEGY_DEGRADATION,
+            severity=AlertSeverity.WARNING,
+            message=f"⚠️ Strategy performance degraded: {webhook_source} - {symbol} {direction}",
+            data={
+                "webhook_source": webhook_source,
+                "symbol": symbol,
+                "direction": direction,
+                "current_win_rate": f"{current_wr:.1f}%",
+                "expected_win_rate": f"{expected_wr:.1f}%",
+                "recent_losses": recent_losses,
+                "action": "Consider re-optimization or circuit breaker",
+            },
+        )
+
+    async def alert_phase_transition(
+        self,
+        symbol: str,
+        direction: str,
+        webhook_source: str,
+        from_phase: str,
+        to_phase: str,
+        reason: str,
+    ):
+        """Alert on phase transitions (I → II → III)"""
+        severity = AlertSeverity.INFO if to_phase == "III" else AlertSeverity.INFO
+        await self.send_alert(
+            alert_type=AlertType.PHASE_TRANSITION,
+            severity=severity,
+            message=f"📊 Phase transition: {webhook_source} - {symbol} {direction} ({from_phase} → {to_phase})",
+            data={
+                "webhook_source": webhook_source,
+                "symbol": symbol,
+                "direction": direction,
+                "from_phase": from_phase,
+                "to_phase": to_phase,
+                "reason": reason,
             },
         )
 
