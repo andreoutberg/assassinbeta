@@ -4,7 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
+  darkMode: 'class', // Always use dark theme
   theme: {
     extend: {
       colors: {
@@ -15,7 +15,7 @@ export default {
           light: '#E5C458',
           dark: '#9F8429',
         },
-        // iOS colors
+        // iOS system colors
         'ios-blue': '#007AFF',
         'ios-green': '#34C759',
         'ios-red': '#FF3B30',
@@ -23,23 +23,25 @@ export default {
         'ios-yellow': '#FFCC00',
         'ios-teal': '#5AC8FA',
         'ios-indigo': '#5856D6',
+        'ios-pink': '#FF2D55',
+        'ios-purple': '#AF52DE',
         // Trading colors
         'success': '#00b67a',
         'danger': '#d32f2f',
         'warning': '#f59e0b',
         // iOS system grays
         'gray': {
-          50: '#F2F2F7',
-          100: '#E5E5EA',
-          200: '#D1D1D6',
-          300: '#C7C7CC',
-          400: '#AEAEB2',
-          500: '#8E8E93',
+          50: '#f2f2f7',
+          100: '#e5e5ea',
+          200: '#d1d1d6',
+          300: '#c7c7cc',
+          400: '#aeaeb2',
+          500: '#8e8e93',
           600: '#636366',
-          700: '#48484A',
-          800: '#3A3A3C',
-          850: '#2C2C2E',
-          900: '#1C1C1E',
+          700: '#48484a',
+          800: '#3a3a3c',
+          850: '#2c2c2e',
+          900: '#1c1c1e',
           950: '#000000',
         },
       },
@@ -47,6 +49,18 @@ export default {
         'sf': ['"SF Pro Display"', '"SF Pro Text"', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
       },
       fontSize: {
+        'ios-caption': ['13px', { lineHeight: '18px', letterSpacing: '-0.08px' }],
+        'ios-caption2': ['11px', { lineHeight: '13px', letterSpacing: '0.06px' }],
+        'ios-footnote': ['13px', { lineHeight: '18px', letterSpacing: '-0.08px' }],
+        'ios-subhead': ['15px', { lineHeight: '20px', letterSpacing: '-0.24px' }],
+        'ios-callout': ['16px', { lineHeight: '21px', letterSpacing: '-0.32px' }],
+        'ios-body': ['17px', { lineHeight: '22px', letterSpacing: '-0.41px' }],
+        'ios-headline': ['17px', { lineHeight: '22px', letterSpacing: '-0.41px', fontWeight: '600' }],
+        'ios-title3': ['20px', { lineHeight: '25px', letterSpacing: '0.38px', fontWeight: '400' }],
+        'ios-title2': ['22px', { lineHeight: '28px', letterSpacing: '0.35px', fontWeight: '400' }],
+        'ios-title1': ['28px', { lineHeight: '34px', letterSpacing: '0.36px', fontWeight: '400' }],
+        'ios-large': ['34px', { lineHeight: '41px', letterSpacing: '0.37px', fontWeight: '400' }],
+        // Keep legacy names for backwards compatibility
         'caption': ['12px', { lineHeight: '16px', letterSpacing: '-0.01em' }],
         'body': ['17px', { lineHeight: '22px', letterSpacing: '-0.01em' }],
         'headline': ['17px', { lineHeight: '22px', letterSpacing: '-0.01em', fontWeight: '600' }],
@@ -89,11 +103,17 @@ export default {
         'ios': '12px',
         'ios-lg': '16px',
         'ios-xl': '20px',
+        'pill': '100px',
       },
       boxShadow: {
+        'ios-sm': '0 1px 3px rgba(0, 0, 0, 0.12)',
+        'ios-md': '0 3px 8px rgba(0, 0, 0, 0.15)',
+        'ios-lg': '0 8px 16px rgba(0, 0, 0, 0.18)',
+        'ios-xl': '0 16px 24px rgba(0, 0, 0, 0.20)',
         'ios': '0 2px 10px rgba(0, 0, 0, 0.08), 0 4px 20px rgba(0, 0, 0, 0.04)',
         'ios-hover': '0 4px 16px rgba(0, 0, 0, 0.12), 0 8px 30px rgba(0, 0, 0, 0.06)',
         'ios-dark': '0 2px 10px rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.15)',
+        'glass': '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
       },
       backdropBlur: {
         'xs': '2px',
@@ -109,8 +129,15 @@ export default {
         'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'spin-slow': 'spin 3s linear infinite',
         'fade-in': 'fadeIn 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
+        'slide-up': 'slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'slide-down': 'slideDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'spring': 'spring 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'bounce-in': 'bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+      },
+      transitionTimingFunction: {
+        'ios': 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+        'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        'bounce': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
       },
       keyframes: {
         fadeIn: {

@@ -31,7 +31,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   return (
     <motion.div
       layout
-      className={clsx('card-ios overflow-hidden', className)}
+      className={clsx('card-dark overflow-hidden', className)}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -40,8 +40,8 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           'w-full px-5 py-4 flex items-center justify-between',
-          'hover:bg-gray-50 dark:hover:bg-gray-800/50',
-          'transition-colors duration-200 touch-feedback focus-ring',
+          'hover:bg-gray-800/30',
+          'transition-colors duration-200',
           'group',
           headerClassName
         )}
@@ -51,18 +51,18 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         <div className="flex items-center gap-3 text-left">
           {Icon && (
             <div className="flex-shrink-0">
-              <Icon className="w-5 h-5 text-gold" />
+              <Icon className="w-5 h-5 text-white" />
             </div>
           )}
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-headline text-gray-900 dark:text-gray-50">
+              <h2 className="text-[15px] font-medium text-white">
                 {title}
               </h2>
               {badge}
             </div>
             {summary && (
-              <p className="text-caption text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-400 mt-0.5">
                 {summary}
               </p>
             )}
@@ -74,11 +74,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           transition={{ duration: 0.2, ease: 'easeInOut' }}
           className="flex-shrink-0 ml-2"
         >
-          <ChevronDown className={clsx(
-            'w-5 h-5 transition-colors duration-200',
-            'text-gray-400 group-hover:text-gray-600',
-            'dark:text-gray-500 dark:group-hover:text-gray-300'
-          )} />
+          <ChevronDown className="w-5 h-5 text-gray-500 group-hover:text-gray-400 transition-colors duration-200" />
         </motion.div>
       </button>
 
@@ -96,7 +92,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             className="overflow-hidden"
           >
             <div className={clsx(
-              'px-5 pb-4 pt-1 border-t border-gray-200/50 dark:border-gray-800/50',
+              'px-5 pb-4 pt-3 border-t border-gray-800/50',
               contentClassName
             )}>
               {children}

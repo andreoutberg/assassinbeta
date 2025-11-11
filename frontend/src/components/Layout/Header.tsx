@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, Wifi, WifiOff } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { ConnectionStatus } from '../ConnectionStatus';
+import { wsClient } from '../../api/websocket';
 
 export const Header: React.FC = () => {
   const [isDark, setIsDark] = useState(false);
@@ -18,13 +19,27 @@ export const Header: React.FC = () => {
       document.documentElement.classList.add('dark');
     }
 
-    // Simulated connection status - replace with actual WebSocket status
-    const timeout = setTimeout(() => {
-      setIsConnected(true);
-      setConnectionTime(new Date());
-    }, 1000);
+    // Connect to WebSocket
+    wsClient.connect();
 
-    return () => clearTimeout(timeout);
+    // Check WebSocket connection status periodically
+    const checkConnection = () => {
+      const connected = wsClient.isConnected;
+      setIsConnected(connected);
+      if (connected && !connectionTime) {
+        setConnectionTime(new Date());
+      } else if (!connected) {
+        setConnectionTime(null);
+      }
+    };
+
+    checkConnection();
+    const interval = setInterval(checkConnection, 1000);
+
+    return () => {
+      clearInterval(interval);
+      wsClient.disconnect();
+    };
   }, []);
 
   const toggleDarkMode = () => {

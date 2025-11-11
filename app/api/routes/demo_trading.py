@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_, or_
 
-from app.database.connection import get_db
-from app.api.deps import get_current_user, get_redis_client
+from app.database.connection import get_db, get_redis
+from app.api.deps import get_current_user
 from app.api.schemas.demo_trading import (
     DemoPositionCreate,
     DemoPositionResponse,

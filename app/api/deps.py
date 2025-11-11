@@ -2,7 +2,7 @@
 FastAPI dependencies for the High-WR Trading System
 """
 from typing import AsyncGenerator, Optional, Dict, Any
-from fastapi import Depends, HTTPException, status, Header, Query
+from fastapi import Depends, HTTPException, status, Header, Query, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 import redis.asyncio as redis
@@ -60,6 +60,7 @@ class RateLimiter:
 
     async def __call__(
         self,
+        response: Response,
         redis_client: redis.Redis = Depends(get_redis),
         user: Dict = Depends(get_current_user),
         x_forwarded_for: Optional[str] = Header(None),
@@ -80,6 +81,11 @@ class RateLimiter:
             if current == 1:
                 # Set expiry for new key
                 await redis_client.expire(key, 60)
+
+            # Set rate limit headers
+            remaining = max(0, self.requests_per_minute - current)
+            response.headers["X-RateLimit-Limit"] = str(self.requests_per_minute)
+            response.headers["X-RateLimit-Remaining"] = str(remaining)
 
             if current > self.requests_per_minute:
                 raise HTTPException(

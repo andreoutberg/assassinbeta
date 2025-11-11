@@ -2,7 +2,6 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/api/client'
-import { Strategy } from '@/types'
 
 export function useStrategies(params?: {
   webhook_source?: string
@@ -12,7 +11,7 @@ export function useStrategies(params?: {
   return useQuery({
     queryKey: ['strategies', params],
     queryFn: () => apiClient.getStrategies(params),
-    refetchInterval: 30000,
+    refetchInterval: false, // Use WebSocket for real-time updates
     staleTime: 15000,
   })
 }

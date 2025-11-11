@@ -1,94 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, Layers, BarChart3, DollarSign, Activity, Target, Zap, Clock } from 'lucide-react';
-import { StatCard } from '../components/StatCard';
+import { TrendingUp, Layers, BarChart3, DollarSign, Activity, Target, ExternalLink, Database } from 'lucide-react';
+import StatCard from '../components/StatCard';
 import { CollapsibleSection } from '../components/CollapsibleSection';
-import { SignalCard } from '../components/SignalCard';
-import { StrategyCard } from '../components/StrategyCard';
+import StrategyCard from '../components/StrategyCard';
 import { WinRateGauge } from '../components/Charts/WinRateGauge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { useSignals } from '../hooks/useSignals';
+import { useStrategies } from '../hooks/useStrategies';
+import { useStats } from '../hooks/useStats';
 import clsx from 'clsx';
 
-// Mock data - replace with actual API calls
-const mockStats = {
-  totalSignals: 342,
-  activeStrategies: 8,
-  overallWinRate: 68.5,
-  totalPnL: 12450.75,
-  todayPnL: 345.20,
-  weekPnL: 2150.60,
-};
-
-const mockRecentSignals = [
-  {
-    id: '1',
-    symbol: 'BTC/USDT',
-    direction: 'LONG' as const,
-    entry_price: 43250.50,
-    current_price: 43850.75,
-    tp_price: 44500,
-    sl_price: 42500,
-    pnl: 600.25,
-    pnl_percentage: 1.39,
-    phase: 'III' as const,
-    webhook_source: 'TradingView_Premium',
-    timestamp: new Date(Date.now() - 3600000),
-    status: 'active' as const,
-    confidence: 78,
-    risk_reward: 2.5,
-  },
-  // Add more mock signals...
-];
-
-const mockActiveStrategies = [
-  {
-    id: '1',
-    webhook_source: 'TradingView_Premium',
-    phase: 'III' as const,
-    win_rate: 72.5,
-    risk_reward: 2.3,
-    expected_value: 8.5,
-    total_trades: 156,
-    profitable_trades: 113,
-    tp_percentage: 3.5,
-    sl_percentage: 1.5,
-    confidence: 85,
-    optimization_url: 'https://optuna.example.com/study/1',
-    last_updated: new Date(),
-    status: 'active' as const,
-    performance_trend: [65, 70, 68, 75, 72, 78, 73],
-    avg_trade_duration: '4h 32m',
-  },
-  // Add more mock strategies...
-];
-
-const mockOptimizationQueue = [
-  {
-    id: '2',
-    webhook_source: 'Custom_Signal_A',
-    phase: 'II' as const,
-    win_rate: 58.2,
-    risk_reward: 1.8,
-    expected_value: 2.3,
-    total_trades: 45,
-    profitable_trades: 26,
-    confidence: 62,
-    optimization_url: 'https://optuna.example.com/study/2',
-    last_updated: new Date(),
-    status: 'optimizing' as const,
-  },
-];
-
 export const Home: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(mockStats);
+  const { data: signalsData, isLoading: signalsLoading } = useSignals({ limit: 10 });
+  const { data: strategiesData, isLoading: strategiesLoading } = useStrategies();
+  const { data: statsData, isLoading: statsLoading } = useStats();
 
-  useEffect(() => {
-    // Simulate loading
-    setTimeout(() => setLoading(false), 1000);
-  }, []);
+  const isLoading = signalsLoading || strategiesLoading || statsLoading;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" text="Loading dashboard..." />
@@ -96,221 +26,262 @@ export const Home: React.FC = () => {
     );
   }
 
+  const stats = (statsData as any) || { total_signals: 0, active_strategies: 0, overall_win_rate: 0, total_pnl: 0 };
+  const signals = (signalsData as any)?.trades || [];
+  const strategies = (strategiesData as any[]) || [];
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6"
       >
-        <h1 className="text-largeTitle font-bold text-gray-900 dark:text-gray-50 mb-2">
-          Dashboard Overview
+        <h1 className="text-[28px] font-semibold text-white mb-1">
+          Overview
         </h1>
-        <p className="text-body text-gray-600 dark:text-gray-400">
-          Real-time trading performance and strategy insights
+        <p className="text-[15px] text-gray-400">
+          Real-time trading metrics and market summary
         </p>
       </motion.div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard
-          value={stats.totalSignals}
-          label="Total Signals"
+          value={(signalsData as any)?.count || signals.length}
+          label="Active Trades"
           icon={TrendingUp}
           color="blue"
-          trend="up"
-          trendValue="+12%"
         />
         <StatCard
-          value={stats.activeStrategies}
+          value={strategies.length}
           label="Active Strategies"
           icon={Layers}
           color="gold"
         />
         <StatCard
-          value={`${stats.overallWinRate.toFixed(1)}%`}
+          value={stats.overall_win_rate ? `${stats.overall_win_rate.toFixed(1)}%` : "N/A"}
           label="Win Rate"
           icon={Target}
           color="success"
-          trend="up"
-          trendValue="+3.2%"
         />
         <StatCard
-          value={`$${stats.totalPnL.toLocaleString()}`}
+          value={stats.total_pnl ? `$${stats.total_pnl.toLocaleString()}` : "$0"}
           label="Total P&L"
           icon={DollarSign}
-          color={stats.totalPnL >= 0 ? 'success' : 'danger'}
-          trend={stats.totalPnL >= 0 ? 'up' : 'down'}
-          trendValue={`${stats.totalPnL >= 0 ? '+' : ''}${((stats.totalPnL / 10000) * 100).toFixed(1)}%`}
+          color={stats.total_pnl >= 0 ? 'success' : 'danger'}
         />
       </div>
 
       {/* Quick Stats Section */}
-      <CollapsibleSection
-        title="Quick Stats"
-        summary={`Today: ${stats.todayPnL >= 0 ? '+' : ''}$${stats.todayPnL.toFixed(2)} | Week: ${stats.weekPnL >= 0 ? '+' : ''}$${stats.weekPnL.toFixed(2)}`}
-        defaultOpen={true}
-        icon={BarChart3}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Win Rate Gauge */}
-          <div className="card-ios p-6 flex items-center justify-center">
-            <WinRateGauge
-              value={stats.overallWinRate}
-              size="md"
-            />
-          </div>
-
-          {/* Performance Summary */}
-          <div className="space-y-4">
-            <div className="glass rounded-ios p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-body text-gray-600 dark:text-gray-300">
-                  Today's Performance
-                </span>
-                <span className={clsx(
-                  'text-headline font-semibold',
-                  stats.todayPnL >= 0 ? 'text-success' : 'text-danger'
-                )}>
-                  {stats.todayPnL >= 0 ? '+' : ''}${stats.todayPnL.toFixed(2)}
-                </span>
-              </div>
-              <div className="h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.abs(stats.todayPnL) / 10}%` }}
-                  className={clsx(
-                    'h-full',
-                    stats.todayPnL >= 0 ? 'bg-success' : 'bg-danger'
-                  )}
-                />
-              </div>
+      {stats.overall_win_rate !== undefined && (
+        <CollapsibleSection
+          title="Performance Overview"
+          summary={`Win Rate: ${stats.overall_win_rate?.toFixed(1)}% | ${signals.length} Active Trades`}
+          defaultOpen={true}
+          icon={BarChart3}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Win Rate Gauge */}
+            <div className="card-dark p-6 flex items-center justify-center">
+              <WinRateGauge
+                value={stats.overall_win_rate || 0}
+                size="md"
+              />
             </div>
 
-            <div className="glass rounded-ios p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-body text-gray-600 dark:text-gray-300">
-                  Weekly Performance
-                </span>
-                <span className={clsx(
-                  'text-headline font-semibold',
-                  stats.weekPnL >= 0 ? 'text-success' : 'text-danger'
-                )}>
-                  {stats.weekPnL >= 0 ? '+' : ''}${stats.weekPnL.toFixed(2)}
-                </span>
-              </div>
-              <div className="h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.abs(stats.weekPnL) / 30}%` }}
-                  className={clsx(
-                    'h-full',
-                    stats.weekPnL >= 0 ? 'bg-success' : 'bg-danger'
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="glass rounded-ios p-4">
-              <div className="flex items-center gap-3">
-                <Activity className="w-5 h-5 text-gold" />
-                <div className="flex-1">
-                  <p className="text-caption text-gray-600 dark:text-gray-300">
-                    Market Activity
-                  </p>
-                  <p className="text-body font-semibold text-gray-900 dark:text-gray-50">
-                    High Volume
-                  </p>
+            {/* Trade Summary */}
+            <div className="space-y-4">
+              <div className="card-dark p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[13px] text-gray-400">
+                    Active Trades
+                  </span>
+                  <span className="text-[17px] font-semibold text-white">
+                    {signals.length}
+                  </span>
                 </div>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ height: 0 }}
-                      animate={{ height: `${20 + Math.random() * 30}px` }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                      className="w-1 bg-gold rounded-full"
-                    />
-                  ))}
+              </div>
+
+              <div className="card-dark p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[13px] text-gray-400">
+                    Total P&L
+                  </span>
+                  <span className={clsx(
+                    'text-[17px] font-semibold',
+                    stats.total_pnl >= 0 ? 'text-ios-green' : 'text-ios-red'
+                  )}>
+                    {stats.total_pnl >= 0 ? '+' : ''}${stats.total_pnl?.toFixed(2) || '0.00'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="card-dark p-4">
+                <div className="flex items-center gap-3">
+                  <Activity className="w-5 h-5 text-gold" />
+                  <div className="flex-1">
+                    <p className="text-[11px] text-gray-400">
+                      Trading Status
+                    </p>
+                    <p className="text-[15px] font-semibold text-white">
+                      {signals.length > 0 ? 'Active' : 'Idle'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </CollapsibleSection>
+        </CollapsibleSection>
+      )}
 
       {/* Recent Signals */}
       <CollapsibleSection
-        title="Recent Signals"
-        summary={`${mockRecentSignals.length} active signals`}
+        title="Active Trades"
+        summary={`${signals.length} active trades`}
         defaultOpen={true}
         icon={TrendingUp}
         badge={
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 bg-ios-green rounded-full animate-pulse" />
-            <span className="text-caption text-ios-green">Live</span>
+            <span className="text-[11px] text-ios-green">Live</span>
           </div>
         }
       >
         <div className="space-y-3">
-          {mockRecentSignals.slice(0, 5).map((signal) => (
-            <SignalCard key={signal.id} signal={signal} />
-          ))}
+          {signals.length > 0 ? (
+            signals.slice(0, 5).map((trade: any) => (
+              <div key={trade.id} className="card-dark p-4 rounded-[12px]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-semibold text-white">{trade.symbol}</span>
+                    <span className={clsx(
+                      "text-[11px] px-2 py-0.5 rounded-full",
+                      trade.direction === 'LONG' ? "bg-ios-green/20 text-ios-green" : "bg-ios-red/20 text-ios-red"
+                    )}>
+                      {trade.direction}
+                    </span>
+                  </div>
+                  <span className={clsx(
+                    "text-[15px] font-bold",
+                    trade.current_pnl_pct >= 0 ? "text-ios-green" : "text-ios-red"
+                  )}>
+                    {trade.current_pnl_pct >= 0 ? '+' : ''}{trade.current_pnl_pct?.toFixed(2)}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[13px] text-gray-400">
+                  <span>Entry: ${trade.entry_price}</span>
+                  <span>Current: ${trade.current_price}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-400 text-center py-8">No active trades</p>
+          )}
         </div>
       </CollapsibleSection>
 
       {/* Active Strategies */}
       <CollapsibleSection
         title="Active Strategies"
-        summary={`${mockActiveStrategies.length} strategies, ${stats.overallWinRate.toFixed(1)}% avg WR`}
+        summary={`${strategies.length} strategies active`}
         defaultOpen={false}
         icon={Layers}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mockActiveStrategies.map((strategy) => (
-            <StrategyCard key={strategy.id} strategy={strategy} />
-          ))}
+          {strategies.length > 0 ? (
+            strategies.slice(0, 4).map((strategy: any) => (
+              <StrategyCard key={strategy.id} strategy={strategy} />
+            ))
+          ) : (
+            <p className="text-gray-400 text-center py-8 col-span-2">No active strategies</p>
+          )}
         </div>
       </CollapsibleSection>
 
-      {/* Optimization Queue */}
+      {/* Monitoring Tools */}
       <CollapsibleSection
-        title="Optimization Queue"
-        summary={`${mockOptimizationQueue.length} strategies optimizing`}
-        defaultOpen={false}
-        icon={Zap}
-        badge={
-          mockOptimizationQueue.length > 0 ? (
-            <span className="badge-phase-ii">Phase II</span>
-          ) : null
-        }
+        title="Monitoring Tools"
+        summary="Quick access to system monitoring and optimization"
+        defaultOpen={true}
+        icon={Activity}
       >
-        <div className="space-y-4">
-          {mockOptimizationQueue.map((strategy) => (
-            <StrategyCard key={strategy.id} strategy={strategy} />
-          ))}
-
-          {/* Progress indicator */}
-          <div className="glass rounded-ios p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <Clock className="w-4 h-4 text-gold animate-spin-slow" />
-              <span className="text-body text-gray-600 dark:text-gray-300">
-                Optimization Progress
-              </span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Optuna Dashboard */}
+          <motion.a
+            href="/optuna/"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="card-dark p-5 rounded-[12px] group hover:border-gold/50 border border-transparent transition-all duration-300"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-2.5 rounded-[10px] bg-ios-blue/10">
+                <BarChart3 className="w-5 h-5 text-ios-blue" />
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-gold transition-colors" />
             </div>
-            <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: '65%' }}
-                transition={{ duration: 2, ease: 'easeInOut' }}
-                className="h-full bg-gradient-to-r from-gold to-gold-light"
-              />
-            </div>
-            <p className="text-caption text-gray-500 dark:text-gray-400 mt-2">
-              Estimated time remaining: 2h 15m
+            <h3 className="text-[15px] font-semibold text-white mb-1.5">Optuna Dashboard</h3>
+            <p className="text-[13px] text-gray-400 leading-relaxed">
+              Strategy optimization & hyperparameter tuning
             </p>
-          </div>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800">
+              <div className="w-1.5 h-1.5 rounded-full bg-ios-green animate-pulse" />
+              <span className="text-[11px] text-gray-500">Port 8080</span>
+            </div>
+          </motion.a>
+
+          {/* Grafana */}
+          <motion.a
+            href="/grafana/"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="card-dark p-5 rounded-[12px] group hover:border-gold/50 border border-transparent transition-all duration-300"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-2.5 rounded-[10px] bg-orange-500/10">
+                <Activity className="w-5 h-5 text-orange-500" />
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-gold transition-colors" />
+            </div>
+            <h3 className="text-[15px] font-semibold text-white mb-1.5">Grafana</h3>
+            <p className="text-[13px] text-gray-400 leading-relaxed">
+              System metrics & performance monitoring
+            </p>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800">
+              <div className="w-1.5 h-1.5 rounded-full bg-ios-green animate-pulse" />
+              <span className="text-[11px] text-gray-500">Port 3001</span>
+            </div>
+          </motion.a>
+
+          {/* Prometheus */}
+          <motion.a
+            href="/prometheus/"
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="card-dark p-5 rounded-[12px] group hover:border-gold/50 border border-transparent transition-all duration-300"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="p-2.5 rounded-[10px] bg-ios-red/10">
+                <Database className="w-5 h-5 text-ios-red" />
+              </div>
+              <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-gold transition-colors" />
+            </div>
+            <h3 className="text-[15px] font-semibold text-white mb-1.5">Prometheus</h3>
+            <p className="text-[13px] text-gray-400 leading-relaxed">
+              Metrics collection & time-series database
+            </p>
+            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-800">
+              <div className="w-1.5 h-1.5 rounded-full bg-ios-green animate-pulse" />
+              <span className="text-[11px] text-gray-500">Port 9090</span>
+            </div>
+          </motion.a>
         </div>
       </CollapsibleSection>
     </div>

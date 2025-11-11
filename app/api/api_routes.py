@@ -8,17 +8,20 @@ Other endpoints: Trade management, statistics, analytics, health checks.
 """
 
 import logging
-from datetime import datetime, timedelta
+import hmac
+import hashlib
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, status, Header
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config.settings import settings
 from app.config.phase_config import PhaseConfig
 from app.database.database import check_db_health, get_db, get_pool_stats
+from app.api.deps import rate_limit_low, rate_limit_standard
 from app.database.models import (
     AssetStatistics,
     PriceAction,
@@ -197,9 +200,12 @@ async def run_ai_evaluation_background(
 # ============================================================================
 
 
-@router.post("/webhook/tradingview", status_code=status.HTTP_201_CREATED)
+@router.post("/webhook/tradingview", dependencies=[Depends(rate_limit_low)], status_code=status.HTTP_201_CREATED)
 async def receive_tradingview_webhook(
-    webhook: dict, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)
+    webhook: dict,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    x_webhook_signature: Optional[str] = Header(None)
 ):
     """
     Receive TradingView webhook and create trade setup
@@ -249,12 +255,39 @@ async def receive_tradingview_webhook(
     # DEBUG: Confirm webhook received
     logger.warning(f"📥 WEBHOOK RECEIVED: {webhook.get('symbol')} {webhook.get('direction')}")
 
+    # Verify webhook signature if secret is configured
+    webhook_secret = getattr(settings, 'WEBHOOK_SECRET', None)
+    if webhook_secret and x_webhook_signature:
+        import json
+        # Compute expected signature
+        webhook_bytes = json.dumps(webhook, sort_keys=True).encode('utf-8')
+        expected_signature = hmac.new(
+            webhook_secret.encode('utf-8'),
+            webhook_bytes,
+            hashlib.sha256
+        ).hexdigest()
+
+        # Compare signatures (constant-time comparison)
+        if not hmac.compare_digest(x_webhook_signature, expected_signature):
+            logger.warning(f"⚠️ Invalid webhook signature for {webhook.get('symbol')}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid webhook signature"
+            )
+        logger.debug("✅ Webhook signature verified")
+    elif webhook_secret and not x_webhook_signature:
+        logger.warning(f"⚠️ Missing webhook signature for {webhook.get('symbol')}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Webhook signature required"
+        )
+
     # Handle HEALTHCHECK webhooks (monitoring/uptime checks)
     if webhook.get('symbol', '').upper() == 'HEALTHCHECK':
         logger.info("✅ HEALTHCHECK webhook received - responding OK")
         return {
             "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "service": "andre-assassin",
             "version": "1.0.0"
         }
@@ -267,14 +300,15 @@ async def receive_tradingview_webhook(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing required fields: {missing}"
         )
 
-    # Validate direction
-    if webhook["direction"] not in ["LONG", "SHORT"]:
+    # Validate direction (allow lowercase and uppercase)
+    direction_upper = webhook["direction"].upper()
+    if direction_upper not in ["LONG", "SHORT"]:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="direction must be 'LONG' or 'SHORT'"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="direction must be 'LONG' or 'SHORT' (case insensitive)"
         )
 
     symbol = webhook["symbol"]  # Original TradingView symbol (e.g., "HIPPOUSDT.P")
-    direction = webhook["direction"]
+    direction = direction_upper
     entry_price = float(webhook["entry_price"])
     timeframe = webhook["timeframe"]
 
@@ -296,7 +330,7 @@ async def receive_tradingview_webhook(
     price_action = PriceAction(
         symbol=symbol,
         timeframe=timeframe,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         open=Decimal(str(webhook.get("ohlcv", {}).get("open", entry_price))),
         high=Decimal(str(webhook.get("ohlcv", {}).get("high", entry_price))),
         low=Decimal(str(webhook.get("ohlcv", {}).get("low", entry_price))),
@@ -333,11 +367,11 @@ async def receive_tradingview_webhook(
 
         for existing_trade in existing_trades:
             # Calculate duration before closing
-            duration_hours = (datetime.utcnow() - existing_trade.entry_timestamp).total_seconds() / 3600
+            duration_hours = (datetime.now(timezone.utc) - existing_trade.entry_timestamp).total_seconds() / 3600
             
             # Close the existing trade (signal-based close, not TP/SL)
             existing_trade.status = "completed"
-            existing_trade.completed_at = datetime.utcnow()
+            existing_trade.completed_at = datetime.now(timezone.utc)
             existing_trade.final_outcome = "signal_close"  # New outcome type
             
             # Enhanced logging for signal closures
@@ -394,7 +428,7 @@ async def receive_tradingview_webhook(
                 else:
                     stats.cumulative_rr = stats.cumulative_wins_usd
 
-                stats.last_rr_check = datetime.utcnow()
+                stats.last_rr_check = datetime.now(timezone.utc)
                 logger.info(f"📊 Updated {symbol} R/R: {float(stats.cumulative_rr):.4f}")
 
     # 4. CIRCUIT BREAKER: Check asset R/R status for live vs paper trading
@@ -645,7 +679,7 @@ async def receive_tradingview_webhook(
         "recommended_action": None
     }
 
-    # 6.8. MAX_EXPOSURE_PCT VALIDATION - Enforce total exposure limit
+    # 6.8. MAX_EXPOSURE_PCT VALIDATION - Enforce total exposure limit (only when live trading)
     # Calculate current total exposure from active trades
     result = await db.execute(
         select(func.sum(TradeSetup.notional_position_usd)).where(TradeSetup.status == 'active')
@@ -659,7 +693,8 @@ async def receive_tradingview_webhook(
     trades_to_create = 1
     new_total_exposure = float(total_exposure) + notional_position_usd
 
-    if new_total_exposure > max_exposure_usd:
+    # Only enforce max exposure when live trading is enabled
+    if PhaseConfig.ENABLE_LIVE_TRADING and new_total_exposure > max_exposure_usd:
         logger.error(
             f"❌ MAX EXPOSURE EXCEEDED: Current=${total_exposure:.2f}, "
             f"New=${new_total_exposure:.2f}, Max=${max_exposure_usd:.2f} ({settings.MAX_EXPOSURE_PCT}%)"
@@ -710,7 +745,7 @@ async def receive_tradingview_webhook(
             timeframe=timeframe,
             direction=direction,
             entry_price=Decimal(str(entry_price)),
-            entry_timestamp=datetime.utcnow(),
+            entry_timestamp=datetime.now(timezone.utc),
             setup_type=webhook.get("setup_type", "unknown"),
             confidence_score=Decimal(str(webhook.get("confidence", 0.5))),
             webhook_source=webhook.get("webhook_source", "tradingview"),
@@ -796,7 +831,51 @@ async def receive_tradingview_webhook(
             detail=f"Failed to create trade: {str(db_error)}"
         )
     
-    # 4. Start real-time price tracking (WebSocket) for the trade
+    # 4. Execute orders on Bybit (ONLY for non-baseline trades in Phase II/III)
+    from app.services.order_executor import OrderExecutor
+
+    for trade in created_trades:
+        # NEVER execute baseline trades (they collect data via timeout only)
+        if trade.risk_strategy == 'baseline':
+            logger.info(
+                f"📊 Baseline trade {trade.id} created (NO orders placed - "
+                f"will collect data via 24h timeout)"
+            )
+            continue
+
+        # Execute strategy trades in Phase II (demo testing) and Phase III (demo/live)
+        if current_phase in ['II', 'III']:
+            try:
+                executor = OrderExecutor()
+                # Force demo mode in Phase II, respect config in Phase III
+                force_demo = (current_phase == 'II') or (not PhaseConfig.ENABLE_LIVE_TRADING)
+                success = await executor.execute_trade(trade, db, force_demo=force_demo)
+                await executor.close()
+
+                if success:
+                    mode = "DEMO" if force_demo else "LIVE"
+                    logger.info(
+                        f"✅ Phase {current_phase} ({mode}): Bybit orders placed for "
+                        f"trade {trade.id} (Strategy: {trade.risk_strategy})"
+                    )
+                else:
+                    logger.warning(
+                        f"⚠️ Phase {current_phase}: Bybit order placement skipped/failed "
+                        f"for trade {trade.id}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"❌ Phase {current_phase}: Error placing Bybit orders for "
+                    f"trade {trade.id}: {e}"
+                )
+        else:
+            # Phase I strategy trades: Paper trading only (shouldn't happen, but handle gracefully)
+            logger.info(
+                f"📝 Phase {current_phase}: Strategy trade {trade.id} created "
+                f"(paper trading only, NO Bybit orders)"
+            )
+
+    # 5. Start real-time price tracking (WebSocket) for the trade
     if price_tracker:
         for trade in created_trades:
             await price_tracker.add_trade(trade, db)
@@ -850,10 +929,10 @@ async def receive_tradingview_webhook(
 # ============================================================================
 
 
-@router.get("/trades/active")
+@router.get("/trades/active", dependencies=[Depends(rate_limit_standard)])
 async def get_active_trades(
-    symbol: Optional[str] = None, 
-    strategy: Optional[str] = None, 
+    symbol: Optional[str] = None,
+    strategy: Optional[str] = None,
     limit: int = 50,  # Pagination for performance
     offset: int = 0,
     db: AsyncSession = Depends(get_db)
@@ -894,17 +973,36 @@ async def get_active_trades(
     result = await db.execute(query)
     trades = result.scalars().all()
 
+    # Get all latest price samples in ONE query using DISTINCT ON (fixes N+1 query)
+    # Extract trade IDs
+    trade_ids = [t.id for t in trades]
+
+    if trade_ids:
+        # Use DISTINCT ON for PostgreSQL - gets latest price sample per trade efficiently
+        latest_samples_query = (
+            select(TradePriceSample)
+            .where(TradePriceSample.trade_setup_id.in_(trade_ids))
+            .distinct(TradePriceSample.trade_setup_id)
+            .order_by(
+                TradePriceSample.trade_setup_id,
+                TradePriceSample.timestamp.desc()
+            )
+        )
+
+        latest_samples_result = await db.execute(latest_samples_query)
+        latest_samples = latest_samples_result.scalars().all()
+
+        # Create a lookup dict for O(1) access
+        latest_sample_map = {sample.trade_setup_id: sample for sample in latest_samples}
+    else:
+        latest_sample_map = {}
+
     # Build response with current prices and PnL
     trades_response = []
     for t in trades:
-        # Get latest price sample to calculate current PnL
-        latest_sample_query = select(TradePriceSample).where(
-            TradePriceSample.trade_setup_id == t.id
-        ).order_by(TradePriceSample.timestamp.desc()).limit(1)
-        
-        latest_sample_result = await db.execute(latest_sample_query)
-        latest_sample = latest_sample_result.scalar_one_or_none()
-        
+        # Use the pre-fetched latest sample from the map (no additional query!)
+        latest_sample = latest_sample_map.get(t.id)
+
         if latest_sample:
             # Use actual current price and PnL from latest sample
             current_price = float(latest_sample.price)
@@ -913,8 +1011,12 @@ async def get_active_trades(
             # Fallback to entry price if no samples yet
             current_price = float(t.entry_price)
             current_pnl_pct = 0.0
-        
+
         entry_price = float(t.entry_price)
+
+        # Calculate dollar P&L from percentage and notional position (with leverage)
+        notional_usd = float(t.notional_position_usd) if t.notional_position_usd else 0
+        current_pnl_usd = (current_pnl_pct / 100) * notional_usd if notional_usd > 0 else None
 
         trades_response.append({
             "id": t.id,
@@ -922,6 +1024,7 @@ async def get_active_trades(
             "direction": t.direction,
             "entry_price": entry_price,
             "current_price": round(current_price, 8),
+            "current_pnl": current_pnl_usd,  # Dollar P&L
             "current_pnl_pct": current_pnl_pct,
             "entry_time": t.entry_timestamp.isoformat(),
             "max_profit_pct": float(t.max_profit_pct) if t.max_profit_pct else 0,
@@ -938,7 +1041,7 @@ async def get_active_trades(
             "strategy": t.webhook_source,
             # Leverage and position fields
             "trade_mode": t.trade_mode,
-            "notional_position_usd": float(t.notional_position_usd) if t.notional_position_usd else 0,
+            "notional_position_usd": notional_usd,
             "margin_required_usd": float(t.margin_required_usd) if t.margin_required_usd else 0,
             "leverage": float(t.leverage) if t.leverage else 1.0,
         })
@@ -952,7 +1055,7 @@ async def get_active_trades(
     }
 
 
-@router.get("/trades/recent-signals")
+@router.get("/trades/recent-signals", dependencies=[Depends(rate_limit_standard)])
 async def get_recent_signals(limit: int = 10, offset: int = 0, db: AsyncSession = Depends(get_db)):
     """
     Get recent webhook signals (last N trade setups created)
@@ -1002,7 +1105,7 @@ async def get_recent_signals(limit: int = 10, offset: int = 0, db: AsyncSession 
     }
 
 
-@router.get("/trades/live-activity")
+@router.get("/trades/live-activity", dependencies=[Depends(rate_limit_standard)])
 async def get_live_trading_activity(
     status: Optional[str] = "active",
     period: Optional[str] = "all",
@@ -1035,13 +1138,13 @@ async def get_live_trading_activity(
     
     # Add time period filter
     if period == "today":
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         query = query.where(TradeSetup.entry_timestamp >= today_start)
     elif period == "week":
-        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         query = query.where(TradeSetup.entry_timestamp >= week_ago)
     elif period == "month":
-        month_ago = datetime.utcnow() - timedelta(days=30)
+        month_ago = datetime.now(timezone.utc) - timedelta(days=30)
         query = query.where(TradeSetup.entry_timestamp >= month_ago)
     # else: period == "all", no filter
 
@@ -1066,13 +1169,13 @@ async def get_live_trading_activity(
         count_query = count_query.where(TradeSetup.status == "completed")
     
     if period == "today":
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         count_query = count_query.where(TradeSetup.entry_timestamp >= today_start)
     elif period == "week":
-        week_ago = datetime.utcnow() - timedelta(days=7)
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         count_query = count_query.where(TradeSetup.entry_timestamp >= week_ago)
     elif period == "month":
-        month_ago = datetime.utcnow() - timedelta(days=30)
+        month_ago = datetime.now(timezone.utc) - timedelta(days=30)
         count_query = count_query.where(TradeSetup.entry_timestamp >= month_ago)
     
     # Execute count query
@@ -1135,7 +1238,7 @@ async def get_live_trading_activity(
 
             if timestamp:
                 milestone_data["timestamp"] = timestamp.isoformat()
-                milestone_data["minutes_ago"] = int((datetime.utcnow() - timestamp).total_seconds() / 60)
+                milestone_data["minutes_ago"] = int((datetime.now(timezone.utc) - timestamp).total_seconds() / 60)
                 result["reached"].append(milestone_data)
             else:
                 # Calculate distance to threshold
@@ -1198,7 +1301,7 @@ async def get_live_trading_activity(
                 "risk_strategy": t.risk_strategy,
                 "entry_time": t.entry_timestamp.isoformat(),
                 "exit_time": t.completed_at.isoformat() if t.completed_at else None,
-                "duration_minutes": int((datetime.utcnow() - t.entry_timestamp).total_seconds() / 60) if t.status == "active" else int((t.completed_at - t.entry_timestamp).total_seconds() / 60) if t.completed_at else 0,
+                "duration_minutes": int((datetime.now(timezone.utc) - t.entry_timestamp).total_seconds() / 60) if t.status == "active" else int((t.completed_at - t.entry_timestamp).total_seconds() / 60) if t.completed_at else 0,
                 "tp1_hit": t.tp1_hit,
                 "tp2_hit": t.tp2_hit,
                 "tp3_hit": t.tp3_hit,
@@ -1213,7 +1316,7 @@ async def get_live_trading_activity(
     }
 
 
-@router.get("/trades/{trade_id}")
+@router.get("/trades/{trade_id}", dependencies=[Depends(rate_limit_standard)])
 async def get_trade(trade_id: int = Path(..., ge=1), db: AsyncSession = Depends(get_db)):
     """
     Get detailed information about a specific trade
@@ -1273,7 +1376,7 @@ async def get_trade(trade_id: int = Path(..., ge=1), db: AsyncSession = Depends(
     }
 
 
-@router.get("/trades/{trade_id}/details")
+@router.get("/trades/{trade_id}/details", dependencies=[Depends(rate_limit_standard)])
 async def get_trade_details(trade_id: int, db: AsyncSession = Depends(get_db)):
     """
     Get comprehensive trade details for modal popup
@@ -1397,7 +1500,7 @@ async def get_trade_details(trade_id: int, db: AsyncSession = Depends(get_db)):
     }
 
 
-@router.get("/history-trades")
+@router.get("/history-trades", dependencies=[Depends(rate_limit_standard)])
 async def get_trade_history(
     symbol: Optional[str] = None,
     strategy: Optional[str] = None,
@@ -1468,7 +1571,7 @@ async def get_trade_history(
     }
 
 
-@router.post("/trades/{trade_id}/close")
+@router.post("/trades/{trade_id}/close", dependencies=[Depends(rate_limit_low)])
 async def close_trade_manually(
     trade_id: int,
     outcome: str,
@@ -1506,7 +1609,7 @@ async def close_trade_manually(
     else:
         # Fallback if price tracker not running
         trade.status = "completed"
-        trade.completed_at = datetime.utcnow()
+        trade.completed_at = datetime.now(timezone.utc)
         trade.final_outcome = outcome
         trade.final_pnl_pct = Decimal(str(final_pnl_pct))
         await db.commit()
@@ -1526,7 +1629,7 @@ async def close_trade_manually(
 # ============================================================================
 
 
-@router.get("/statistics/{symbol}")
+@router.get("/statistics/{symbol}", dependencies=[Depends(rate_limit_standard)])
 async def get_symbol_statistics(symbol: str, db: AsyncSession = Depends(get_db)):
     """
     Get learned statistics for a symbol
@@ -2731,7 +2834,7 @@ async def get_account_balance(db: AsyncSession = Depends(get_db)):
 # ============================================================================
 
 
-@router.get("/health")
+@router.get("/health", dependencies=[Depends(rate_limit_standard)])
 async def health_check():
     """
     System health check
@@ -2748,7 +2851,7 @@ async def health_check():
 
     return {
         "status": "healthy" if db_healthy else "degraded",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "services": {
             "api": "online",
             "database": "connected" if db_healthy else "disconnected",
@@ -2796,7 +2899,7 @@ async def get_websocket_stats():
         efficiency_pct = 0
 
     return {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "websocket_stats": stats,
         "multiplexing_metrics": {
             "total_trades": total_subscribers,
@@ -2816,7 +2919,7 @@ async def get_websocket_stats():
     }
 
 
-@router.post("/tracking/start")
+@router.post("/tracking/start", dependencies=[Depends(rate_limit_low)])
 async def start_price_tracking(db: AsyncSession = Depends(get_db)):
     """
     Manually start price tracking for all active trades

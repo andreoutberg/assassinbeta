@@ -18,7 +18,7 @@ async def check_health(host: str = "localhost", port: int = 8000) -> Dict[str, A
     Returns:
         Dict containing health status and details
     """
-    url = f"http://{host}:{port}/health"
+    url = f"http://{host}:{port}/api/health"
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:

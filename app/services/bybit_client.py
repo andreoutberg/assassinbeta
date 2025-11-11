@@ -39,14 +39,15 @@ class BybitClient:
     BASE_RETRY_DELAY = 1.0  # seconds
 
     def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None, testnet: bool = True,
-                 max_connections: int = 10):
+                 demo_trading: bool = False, max_connections: int = 10):
         """
         Initialize Bybit client with enhanced features.
 
         Args:
             api_key: Bybit API key (optional for public data)
             api_secret: Bybit API secret (optional for public data)
-            testnet: Use testnet for demo trading (default: True)
+            testnet: Use testnet environment (default: True)
+            demo_trading: Use demo trading on live endpoint (default: False)
             max_connections: Maximum concurrent connections (default: 10)
         """
         # Initialize exchange with connection limits
@@ -57,7 +58,7 @@ class BybitClient:
             'rateLimit': 100,  # milliseconds between requests
             'options': {
                 'defaultType': 'linear',  # USDT perpetual
-                'testnet': testnet,
+                'testnet': testnet if not demo_trading else False,  # Demo uses live endpoint
                 'adjustForTimeDifference': True,  # Auto-adjust for time sync issues
             },
             # Connection pool settings
@@ -70,8 +71,14 @@ class BybitClient:
             }
         })
 
+        # Enable demo trading if requested (must be after initialization)
+        if demo_trading:
+            self.exchange.enable_demo_trading(True)
+            logger.info("🎮 Demo trading enabled (using live API with virtual funds)")
+
         self.is_connected = False
         self.testnet = testnet
+        self.demo_trading = demo_trading
 
         # Rate limiting
         self.rate_limiter = Semaphore(self.MAX_REQUESTS_PER_SECOND)
@@ -745,10 +752,17 @@ class BybitConnectionPool:
         self.client_index = 0
         self.lock = asyncio.Lock()
 
-    async def initialize(self):
+    async def initialize(self, api_key: Optional[str] = None, api_secret: Optional[str] = None,
+                         demo_trading: bool = False):
         """Initialize all clients in the pool."""
         for i in range(self.pool_size):
-            client = BybitClient(testnet=self.testnet, max_connections=20)
+            client = BybitClient(
+                api_key=api_key,
+                api_secret=api_secret,
+                testnet=self.testnet,
+                demo_trading=demo_trading,
+                max_connections=20
+            )
             if await client.connect():
                 self.clients.append(client)
                 logger.info(f"Initialized client {i+1}/{self.pool_size} in pool")
@@ -799,26 +813,49 @@ _bybit_client: Optional[BybitClient] = None
 _bybit_pool: Optional[BybitConnectionPool] = None
 
 
-async def get_bybit_client(use_pool: bool = False, pool_size: int = 5) -> BybitClient:
+async def get_bybit_client(use_pool: bool = False, pool_size: int = 5,
+                           api_key: Optional[str] = None, api_secret: Optional[str] = None,
+                           testnet: bool = False, demo_trading: bool = True) -> BybitClient:
     """
     Get or create global Bybit client instance.
 
     Args:
         use_pool: Use connection pool for high throughput (default: False)
         pool_size: Size of connection pool if enabled (default: 5)
+        api_key: Bybit API key (from env if None)
+        api_secret: Bybit API secret (from env if None)
+        testnet: Use testnet (default: False)
+        demo_trading: Use demo trading on live endpoint (default: True)
 
     Returns:
         BybitClient instance
     """
     global _bybit_client, _bybit_pool
 
+    # Get credentials from environment if not provided
+    if api_key is None:
+        import os
+        api_key = os.getenv('BYBIT_API_KEY')
+        api_secret = os.getenv('BYBIT_API_SECRET')
+        testnet_env = os.getenv('BYBIT_TESTNET', 'false').lower() == 'true'
+        # Use demo_trading if not testnet
+        if not testnet_env:
+            demo_trading = True
+            testnet = False
+
     if use_pool:
         if _bybit_pool is None:
-            _bybit_pool = BybitConnectionPool(pool_size=pool_size, testnet=True)
-            await _bybit_pool.initialize()
+            _bybit_pool = BybitConnectionPool(pool_size=pool_size, testnet=testnet)
+            await _bybit_pool.initialize(api_key=api_key, api_secret=api_secret, demo_trading=demo_trading)
         return await _bybit_pool.get_client()
     else:
         if _bybit_client is None:
-            _bybit_client = BybitClient(testnet=True, max_connections=10)
+            _bybit_client = BybitClient(
+                api_key=api_key,
+                api_secret=api_secret,
+                testnet=testnet,
+                demo_trading=demo_trading,
+                max_connections=10
+            )
             await _bybit_client.connect()
         return _bybit_client

@@ -3,7 +3,8 @@ Configuration settings for Andre Assassin High-WR Trading System
 Uses Pydantic Settings for environment variable management
 """
 
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import List, Optional
 import os
 from functools import lru_cache
@@ -67,6 +68,14 @@ class Settings(BaseSettings):
     DEMO_MAX_LEVERAGE: int = Field(10, env="DEMO_MAX_LEVERAGE")
     DEMO_MAKER_FEE: float = Field(0.0002, env="DEMO_MAKER_FEE")
     DEMO_TAKER_FEE: float = Field(0.00055, env="DEMO_TAKER_FEE")
+
+    # Account & Risk Settings
+    ACCOUNT_BALANCE_USD: float = Field(10000.0, env="ACCOUNT_BALANCE_USD")
+    MAX_RISK_PER_TRADE_PCT: float = Field(2.0, env="MAX_RISK_PER_TRADE_PCT")
+    MAX_EXPOSURE_PCT: float = Field(20.0, env="MAX_EXPOSURE_PCT")
+    LEVERAGE: float = Field(5.0, env="LEVERAGE")
+    MIN_RISK_REWARD_RATIO: float = Field(1.5, env="MIN_RISK_REWARD_RATIO")
+    DEFAULT_SL_PCT: float = Field(3.0, env="DEFAULT_SL_PCT")
 
     # Phase Configuration
     PHASE_I_ENABLED: bool = Field(True, env="PHASE_I_ENABLED")

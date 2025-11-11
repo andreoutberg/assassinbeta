@@ -17,6 +17,8 @@ from sqlalchemy import select
 from app.database.models import TradeSetup, TradeMilestones
 from app.database.strategy_models import GridSearchResult
 from app.services.grid_search_optimizer import GridSearchOptimizer
+from app.services.optuna_optimizer import run_optuna_grid_search
+from app.config.settings import settings
 from app.config.phase_config import PhaseConfig
 from app.utils.exceptions import InsufficientDataError, StrategyGenerationError
 from app.utils.retry import db_retry
@@ -80,15 +82,38 @@ class StrategyCalculator:
 
         logger.info(f"Found {len(baseline_trades)} baseline trades for optimization")
 
-        # Run grid search
+        # Run Optuna multi-objective optimization (replaces traditional grid search)
         start = time.time()
-        top_results = GridSearchOptimizer.grid_search(baseline_trades)
+
+        # Prepare Optuna storage URL (use synchronous psycopg2 driver)
+        storage_url = None
+        if hasattr(settings, 'DATABASE_URL') and settings.DATABASE_URL:
+            # Convert asyncpg to psycopg2 for Optuna compatibility
+            storage_url = str(settings.DATABASE_URL).replace('postgresql+asyncpg://', 'postgresql+psycopg2://')
+            logger.info(f"🔬 Using Optuna with persistent storage")
+
+        logger.info(f"🔬 Running Optuna multi-objective optimization (NSGA-II)...")
+        try:
+            top_results = await run_optuna_grid_search(
+                db=db,
+                symbol=symbol,
+                direction=direction,
+                webhook_source=webhook_source,
+                baseline_trades=baseline_trades,
+                use_multi_objective=True,
+                storage_url=storage_url
+            )
+        except Exception as optuna_error:
+            logger.error(f"⚠️  Optuna optimization failed: {optuna_error}")
+            logger.info(f"📊 Falling back to traditional grid search...")
+            top_results = GridSearchOptimizer.grid_search(baseline_trades)
+
         duration_ms = int((time.time() - start) * 1000)
 
         if not top_results:
-            raise StrategyGenerationError(f"Grid search produced no valid results for {symbol} {direction}")
+            raise StrategyGenerationError(f"Optimization produced no valid results for {symbol} {direction}")
 
-        logger.info(f"Grid search completed in {duration_ms}ms. Top score: {top_results[0]['composite_score']:.4f}")
+        logger.info(f"✅ Optimization completed in {duration_ms}ms. Top score: {top_results[0]['composite_score']:.4f}")
 
         # ═══════════════════════════════════════════════════════════════════════════════
         # WALK-FORWARD VALIDATION (Prevent Overfit)

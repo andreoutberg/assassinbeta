@@ -8,7 +8,7 @@ export function useStats() {
     queryKey: ['stats'],
     queryFn: () => apiClient.getStats(),
     refetchInterval: 30000,
-    staleTime: 15000,
+    staleTime: 60000, // Increased from 15000 to 60000
   })
 }
 

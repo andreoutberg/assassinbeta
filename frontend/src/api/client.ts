@@ -1,6 +1,11 @@
 // API client for backend communication
 
-const API_BASE_URL = import.meta.env.VITE_PUBLIC_API_URL || 'http://localhost:8000'
+// Use relative URLs in production, fall back to localhost in development
+const API_BASE_URL = import.meta.env.VITE_PUBLIC_API_URL || (
+  typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    ? `${window.location.protocol}//${window.location.hostname}`
+    : 'http://localhost:8000'
+)
 
 export class ApiClient {
   private baseUrl: string
@@ -27,19 +32,30 @@ export class ApiClient {
 
       return await response.json()
     } catch (error) {
-      console.error(`API request failed: ${url}`, error)
+      if (import.meta.env.DEV) {
+        console.error(`API request failed: ${url}`, error)
+      }
       throw error
     }
   }
 
-  // Signals
-  async getSignals(params?: { webhook_source?: string; phase?: string; limit?: number }) {
+  // Trades
+  async getActiveTrades(params?: { limit?: number; offset?: number }) {
     const queryString = params ? `?${new URLSearchParams(params as any)}` : ''
-    return this.request(`/api/signals${queryString}`)
+    return this.request(`/api/trades/active${queryString}`)
+  }
+
+  async getTrade(id: number) {
+    return this.request(`/api/trades/${id}`)
+  }
+
+  // Signals (legacy - now uses trades/active)
+  async getSignals(params?: { webhook_source?: string; phase?: string; limit?: number }) {
+    return this.getActiveTrades(params)
   }
 
   async getSignal(id: number) {
-    return this.request(`/api/signals/${id}`)
+    return this.getTrade(id)
   }
 
   // Strategies

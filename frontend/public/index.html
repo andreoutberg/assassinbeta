@@ -1,0 +1,3735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>AO Trading · Beta Dashboard</title>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* =============================================
+           NATIVE iOS/macOS DESIGN SYSTEM
+           Following Apple Human Interface Guidelines
+           iOS 26 / macOS Sequoia Design Patterns
+           ============================================= */
+
+        :root {
+            /* ========== iOS SYSTEM COLORS ========== */
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-indigo: #5856D6;
+            --ios-orange: #FF9500;
+            --ios-pink: #FF2D55;
+            --ios-purple: #AF52DE;
+            --ios-red: #FF3B30;
+            --ios-teal: #5AC8FA;
+            --ios-yellow: #FFCC00;
+
+            /* Brand Accent */
+            --accent-gold: #D4AF37;
+            --accent-gold-vibrant: #E5C158;
+
+            /* ========== iOS SEMANTIC COLORS ========== */
+            /* Labels */
+            --label-primary: rgba(255, 255, 255, 0.95);
+            --label-secondary: rgba(255, 255, 255, 0.70);
+            --label-tertiary: rgba(255, 255, 255, 0.55);
+            --label-quaternary: rgba(255, 255, 255, 0.30);
+
+            /* Fills */
+            --fill-primary: rgba(120, 120, 128, 0.36);
+            --fill-secondary: rgba(120, 120, 128, 0.32);
+            --fill-tertiary: rgba(120, 120, 128, 0.24);
+            --fill-quaternary: rgba(120, 120, 128, 0.18);
+
+            /* Backgrounds */
+            --bg-primary: #000000;
+            --bg-secondary: #1C1C1E;
+            --bg-tertiary: #2C2C2E;
+            --bg-elevated: #1C1C1E;
+            --bg-grouped: #000000;
+
+            /* ========== APPLE MATERIALS (Liquid Glass - iOS 26) ========== */
+            --material-ultra-thin: rgba(28, 28, 30, 0.72);
+            --material-thin: rgba(28, 28, 30, 0.82);
+            --material-regular: rgba(28, 28, 30, 0.88);
+            --material-thick: rgba(28, 28, 30, 0.94);
+            --material-chrome: rgba(28, 28, 30, 0.96);
+
+            /* Vibrancy */
+            --vibrant-light: rgba(255, 255, 255, 0.85);
+            --vibrant-medium: rgba(255, 255, 255, 0.60);
+            --vibrant-heavy: rgba(255, 255, 255, 0.40);
+
+            /* Separator */
+            --separator-opaque: rgba(84, 84, 88, 1.0);
+            --separator-non-opaque: rgba(84, 84, 88, 0.65);
+
+            /* ========== LAYOUT CONSTANTS ========== */
+            --nav-bar-height: 96px;
+            --sidebar-width: 280px;
+            --tab-bar-height: 83px;
+
+            /* Spacing (Apple's 8pt grid) */
+            --spacing-1: 4px;
+            --spacing-2: 8px;
+            --spacing-3: 12px;
+            --spacing-4: 16px;
+            --spacing-5: 20px;
+            --spacing-6: 24px;
+            --spacing-8: 32px;
+            --spacing-10: 40px;
+
+            /* Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-pill: 100px;
+
+            /* ========== TYPOGRAPHY ========== */
+            --font-largeTitle: 34px;
+            --font-title1: 28px;
+            --font-title2: 22px;
+            --font-title3: 20px;
+            --font-headline: 17px;
+            --font-body: 17px;
+            --font-callout: 16px;
+            --font-subheadline: 15px;
+            --font-footnote: 13px;
+            --font-caption1: 12px;
+            --font-caption2: 11px;
+
+            /* Font weights */
+            --weight-regular: 400;
+            --weight-medium: 500;
+            --weight-semibold: 600;
+            --weight-bold: 700;
+
+            /* Animation */
+            --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+            --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* ========== LIGHT MODE THEME ========== */
+        [data-theme="light"] {
+            /* Labels */
+            --label-primary: #000000;
+            --label-secondary: #3c3c43;
+            --label-tertiary: rgba(60, 60, 67, 0.6);
+            --label-quaternary: rgba(60, 60, 67, 0.3);
+
+            /* Fills */
+            --fill-primary: rgba(120, 120, 128, 0.2);
+            --fill-secondary: rgba(120, 120, 128, 0.16);
+            --fill-tertiary: rgba(118, 118, 128, 0.12);
+            --fill-quaternary: rgba(116, 116, 128, 0.08);
+
+            /* Backgrounds */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f7;
+            --bg-tertiary: #e8e8ed;
+            --bg-elevated: #ffffff;
+            --bg-grouped: #f5f5f7;
+
+            /* Materials */
+            --material-ultra-thin: rgba(255, 255, 255, 0.72);
+            --material-thin: rgba(255, 255, 255, 0.82);
+            --material-regular: rgba(255, 255, 255, 0.7);
+            --material-thick: rgba(255, 255, 255, 0.85);
+            --material-chrome: rgba(255, 255, 255, 0.96);
+
+            /* Vibrancy */
+            --vibrant-light: rgba(0, 0, 0, 0.85);
+            --vibrant-medium: rgba(0, 0, 0, 0.60);
+            --vibrant-heavy: rgba(0, 0, 0, 0.40);
+
+            /* Separator */
+            --separator-opaque: rgba(60, 60, 67, 0.29);
+            --separator-non-opaque: rgba(60, 60, 67, 0.36);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--label-primary);
+            font-size: var(--font-body);
+            line-height: 1.47;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        /* ========== LAYOUT STRUCTURE ========== */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--separator-non-opaque);
+            padding: var(--spacing-6);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            margin-bottom: var(--spacing-8);
+        }
+
+        .sidebar-logo {
+            font-size: var(--font-title1);
+            font-weight: var(--weight-bold);
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-vibrant));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: var(--spacing-2);
+        }
+
+        .sidebar-subtitle {
+            font-size: var(--font-caption1);
+            color: var(--label-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .nav-section {
+            margin-bottom: var(--spacing-6);
+        }
+
+        .nav-section-title {
+            font-size: var(--font-caption1);
+            font-weight: var(--weight-semibold);
+            color: var(--label-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: var(--spacing-2);
+            padding: 0 var(--spacing-3);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-2) var(--spacing-3);
+            border-radius: var(--radius-md);
+            color: var(--label-primary);
+            text-decoration: none;
+            font-size: var(--font-body);
+            transition: background 0.15s var(--ease-in-out);
+            margin-bottom: 2px;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: var(--fill-tertiary);
+        }
+
+        .nav-link.active {
+            background: var(--fill-secondary);
+        }
+
+        .nav-link-icon {
+            font-size: 18px;
+            margin-right: var(--spacing-3);
+            width: 24px;
+            text-align: center;
+        }
+
+        .status-indicator-container {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-3);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-md);
+            margin-top: var(--spacing-4);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ios-green);
+            margin-right: var(--spacing-2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: var(--font-footnote);
+            color: var(--label-secondary);
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle-btn {
+            width: 100%;
+            padding: var(--spacing-3);
+            background: var(--fill-tertiary);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-md);
+            color: var(--label-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            margin-top: var(--spacing-4);
+            font-size: var(--font-footnote);
+            font-weight: var(--weight-medium);
+            transition: all 0.15s var(--ease-in-out);
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--fill-secondary);
+        }
+
+        .theme-toggle-icon {
+            font-size: 16px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .page {
+            display: none;
+            padding: var(--spacing-8);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: var(--spacing-8);
+        }
+
+        .page-title {
+            font-size: var(--font-largeTitle);
+            font-weight: var(--weight-bold);
+            margin-bottom: var(--spacing-2);
+        }
+
+        .page-subtitle {
+            font-size: var(--font-body);
+            color: var(--label-secondary);
+        }
+
+        /* ========== CARD COMPONENTS ========== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+
+        .card {
+            background: var(--material-regular);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-5);
+            transition: all 0.2s var(--ease-in-out);
+        }
+
+        .card:hover {
+            background: var(--material-thick);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-4);
+        }
+
+        .card-title {
+            font-size: var(--font-headline);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+        }
+
+        .card-value {
+            font-size: var(--font-title1);
+            font-weight: var(--weight-bold);
+            margin-bottom: var(--spacing-1);
+        }
+
+        .card-label {
+            font-size: var(--font-footnote);
+            color: var(--label-secondary);
+        }
+
+        .card-badge {
+            font-size: var(--font-caption1);
+            font-weight: var(--weight-semibold);
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: var(--radius-sm);
+            background: var(--fill-secondary);
+            color: var(--label-primary);
+        }
+
+        /* Stats Card */
+        .stat-card {
+            background: var(--material-regular);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-5);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: var(--spacing-3);
+        }
+
+        .stat-value {
+            font-size: var(--font-title1);
+            font-weight: var(--weight-bold);
+            margin-bottom: var(--spacing-1);
+        }
+
+        .stat-label {
+            font-size: var(--font-footnote);
+            color: var(--label-secondary);
+        }
+
+        /* List Components */
+        .list-group {
+            background: var(--material-regular);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-4);
+            border-bottom: 1px solid var(--separator-non-opaque);
+            transition: background 0.15s var(--ease-in-out);
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item:hover {
+            background: var(--fill-quaternary);
+        }
+
+        .list-item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: var(--spacing-3);
+            font-size: 18px;
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+            margin-bottom: 2px;
+        }
+
+        .list-item-subtitle {
+            font-size: var(--font-footnote);
+            color: var(--label-secondary);
+        }
+
+        .list-item-trailing {
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+        }
+
+        /* Pills/Badges */
+        .pill {
+            display: inline-block;
+            padding: var(--spacing-1) var(--spacing-3);
+            border-radius: var(--radius-pill);
+            font-size: var(--font-caption1);
+            font-weight: var(--weight-semibold);
+        }
+
+        .pill-success {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--ios-green);
+        }
+
+        .pill-danger {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--ios-red);
+        }
+
+        /* Filter Buttons */
+        .filter-button {
+            padding: var(--spacing-2) var(--spacing-4);
+            border: 1.5px solid var(--separator);
+            border-radius: var(--radius-button);
+            background: var(--fill-tertiary);
+            color: var(--label-primary);
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+            cursor: pointer;
+            transition: all 0.2s var(--spring-smooth);
+        }
+
+        .filter-button:hover {
+            background: var(--fill-secondary);
+            border-color: var(--ios-blue);
+        }
+
+        .filter-button-active {
+            background: var(--ios-blue);
+            color: white;
+            border-color: var(--ios-blue);
+        }
+
+        .filter-button-active:hover {
+            background: rgba(0, 122, 255, 0.9);
+        }
+
+        /* Trader Filter Dropdown */
+        .trader-filter-container {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+
+        .trader-filter-label {
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+            color: var(--label-secondary);
+        }
+
+        .trader-filter-select {
+            padding: var(--spacing-2) var(--spacing-4);
+            border: 1.5px solid var(--separator);
+            border-radius: var(--radius-button);
+            background: var(--fill-tertiary);
+            color: var(--label-primary);
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-medium);
+            cursor: pointer;
+            transition: all 0.2s var(--spring-smooth);
+            min-width: 160px;
+        }
+
+        .trader-filter-select:hover {
+            background: var(--fill-secondary);
+            border-color: var(--ios-blue);
+        }
+
+        .trader-filter-select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        /* Exchange Filter Multi-Select Dropdown */
+        .exchange-filter-container {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            position: relative;
+            margin-bottom: var(--spacing-4);
+        }
+
+        .exchange-filter-label {
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+            color: var(--label-secondary);
+        }
+
+        .exchange-filter-dropdown {
+            position: relative;
+            min-width: 220px;
+        }
+
+        .exchange-filter-button {
+            width: 100%;
+            padding: var(--spacing-2) var(--spacing-4);
+            border: 1.5px solid var(--separator);
+            border-radius: var(--radius-button);
+            background: var(--fill-tertiary);
+            color: var(--label-primary);
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-medium);
+            cursor: pointer;
+            transition: all 0.2s var(--spring-smooth);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+
+        .exchange-filter-button:hover {
+            background: var(--fill-secondary);
+            border-color: var(--ios-blue);
+        }
+
+        .exchange-filter-button:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .exchange-filter-options {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--material-regular);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            max-height: 320px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .exchange-filter-options.show {
+            display: block;
+        }
+
+        .exchange-filter-option {
+            padding: var(--spacing-3) var(--spacing-4);
+            cursor: pointer;
+            transition: background 0.2s var(--spring-smooth);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            font-size: var(--font-subheadline);
+        }
+
+        .exchange-filter-option:hover {
+            background: var(--fill-secondary);
+        }
+
+        .exchange-filter-option input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--ios-blue);
+        }
+
+        .exchange-filter-option label {
+            cursor: pointer;
+            flex: 1;
+            color: var(--label-primary);
+        }
+
+        .exchange-filter-clear {
+            padding: var(--spacing-2) var(--spacing-3);
+            border: 1.5px solid var(--separator);
+            border-radius: var(--radius-button);
+            background: var(--fill-tertiary);
+            color: var(--label-secondary);
+            font-size: var(--font-caption1);
+            font-weight: var(--weight-medium);
+            cursor: pointer;
+            transition: all 0.2s var(--spring-smooth);
+        }
+
+        .exchange-filter-clear:hover {
+            background: var(--fill-secondary);
+            color: var(--ios-red);
+            border-color: var(--ios-red);
+        }
+
+        .listings-count {
+            font-size: var(--font-subheadline);
+            color: var(--label-secondary);
+            margin-bottom: var(--spacing-3);
+            font-weight: var(--weight-medium);
+        }
+
+        .pill-warning {
+            background: rgba(255, 204, 0, 0.15);
+            color: var(--ios-yellow);
+        }
+
+        .pill-info {
+            background: rgba(0, 122, 255, 0.15);
+            color: var(--ios-blue);
+        }
+
+        /* Data Source Badge */
+        .data-source-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: var(--weight-medium);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            background: rgba(142, 142, 147, 0.12);
+            color: var(--text-secondary);
+            margin-left: var(--spacing-2);
+            vertical-align: middle;
+            cursor: help;
+            transition: all 0.2s ease;
+        }
+
+        .data-source-badge:hover {
+            background: rgba(142, 142, 147, 0.2);
+        }
+
+        /* Close Trade Button */
+        .close-trade-btn {
+            padding: 6px 12px;
+            border: 1.5px solid var(--separator-non-opaque);
+            border-radius: 8px;
+            background: var(--fill-tertiary);
+            color: var(--label-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            margin-left: 8px;
+            font-weight: var(--weight-medium);
+        }
+
+        .close-trade-btn:hover {
+            background: rgba(255, 159, 10, 0.1);
+            border-color: var(--ios-orange);
+            color: var(--ios-orange);
+        }
+
+        .close-trade-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Delete Trade Button */
+        .delete-trade-btn {
+            padding: 6px 12px;
+            border: 1.5px solid var(--separator-non-opaque);
+            border-radius: 8px;
+            background: var(--fill-tertiary);
+            color: var(--label-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+        .delete-trade-btn:hover {
+            background: rgba(255, 59, 48, 0.1);
+            border-color: var(--ios-red);
+            color: var(--ios-red);
+        }
+        /* Loading States */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-10);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--fill-secondary);
+            border-top-color: var(--ios-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: var(--spacing-3);
+            font-size: var(--font-subheadline);
+            color: var(--label-secondary);
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-10);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--spacing-3);
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: var(--font-title3);
+            font-weight: var(--weight-semibold);
+            margin-bottom: var(--spacing-2);
+        }
+
+        .empty-state-subtitle {
+            font-size: var(--font-subheadline);
+            color: var(--label-secondary);
+        }
+        /* WebSocket Items */
+        .ws-item {
+            padding: var(--spacing-4);
+            border-bottom: 1px solid var(--separator-non-opaque);
+            cursor: pointer;
+            transition: background 0.15s var(--ease-in-out);
+        }
+
+        .ws-item:last-child {
+            border-bottom: none;
+        }
+
+        .ws-item:hover {
+            background: var(--fill-quaternary);
+        }
+
+        .ws-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ws-item-name {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-3);
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+        }
+
+        .ws-item-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            font-size: var(--font-footnote);
+            color: var(--label-secondary);
+        }
+
+        .ws-status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .ws-status-active {
+            background: var(--ios-green);
+            box-shadow: 0 0 8px rgba(52, 199, 89, 0.5);
+        }
+
+        .ws-status-disconnected {
+            background: var(--ios-red);
+        }
+
+        .ws-status-connecting {
+            background: var(--ios-yellow);
+            animation: pulse 1.5s infinite;
+        }
+
+        .ws-item-details {
+            margin-top: var(--spacing-3);
+            padding-top: var(--spacing-3);
+            border-top: 1px solid var(--separator);
+            display: none;
+        }
+
+        .ws-item-details.expanded {
+            display: block;
+        }
+
+        .ws-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-4);
+            margin-top: var(--spacing-3);
+        }
+
+        .ws-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ws-detail-label {
+            font-size: var(--font-footnote);
+            color: var(--label-secondary);
+            margin-bottom: var(--spacing-1);
+        }
+
+        .ws-detail-value {
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+        }
+
+        .ws-symbols-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-2);
+            margin-top: var(--spacing-2);
+        }
+
+        .ws-symbol-badge {
+            font-size: var(--font-caption2);
+            font-weight: var(--weight-medium);
+            padding: 2px var(--spacing-2);
+            border-radius: var(--spacing-sm);
+            background: var(--fill-tertiary);
+            color: var(--label-secondary);
+        }
+
+
+        /* Health Score Circle */
+        .health-score-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-6);
+        }
+
+        .health-circle {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+
+        .health-score-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: var(--font-largeTitle);
+            font-weight: var(--weight-bold);
+        }
+
+        /* Utilities */
+        .text-success { color: var(--ios-green); }
+        .text-danger { color: var(--ios-red); }
+        .text-warning { color: var(--ios-yellow); }
+        .text-info { color: var(--ios-blue); }
+        .hidden { display: none !important; }
+        .mb-4 { margin-bottom: var(--spacing-4); }
+        .mb-6 { margin-bottom: var(--spacing-6); }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-4);
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: var(--spacing-3);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-md);
+        }
+
+        .stat-box-value {
+            font-size: var(--font-title3);
+            font-weight: var(--weight-semibold);
+            margin-bottom: var(--spacing-1);
+        }
+
+        .stat-box-label {
+            font-size: var(--font-caption1);
+            color: var(--label-secondary);
+        }
+
+
+        /* ========== TRADER STATS MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s var(--ease-in-out);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-container {
+            background: var(--material-thick);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-xl);
+            max-width: 900px;
+            width: 90%;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9);
+            transition: transform 0.3s var(--ease-spring);
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: var(--spacing-5);
+            border-bottom: 1px solid var(--separator-non-opaque);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: var(--font-title2);
+            font-weight: var(--weight-bold);
+            color: var(--label-primary);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--fill-tertiary);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--label-secondary);
+            transition: all 0.2s var(--ease-in-out);
+        }
+
+        .modal-close:hover {
+            background: var(--fill-secondary);
+            transform: scale(1.1);
+        }
+
+        .modal-tabs {
+            display: flex;
+            padding: 0 var(--spacing-5);
+            gap: var(--spacing-2);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--separator-non-opaque);
+        }
+
+        .modal-tab {
+            padding: var(--spacing-3) var(--spacing-4);
+            background: transparent;
+            border: none;
+            color: var(--label-secondary);
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-medium);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s var(--ease-in-out);
+        }
+
+        .modal-tab:hover {
+            color: var(--label-primary);
+        }
+
+        .modal-tab.active {
+            color: var(--ios-blue);
+            border-bottom-color: var(--ios-blue);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-5);
+        }
+
+        .modal-tab-content {
+            display: none;
+        }
+
+        .modal-tab-content.active {
+            display: block;
+        }
+
+        .stats-section {
+            margin-bottom: var(--spacing-6);
+        }
+
+        .stats-section-title {
+            font-size: var(--font-headline);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+            margin-bottom: var(--spacing-4);
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-3);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-2);
+        }
+
+        .stat-row-label {
+            font-size: var(--font-body);
+            color: var(--label-secondary);
+        }
+
+        .stat-row-value {
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--fill-tertiary);
+            border-radius: var(--radius-pill);
+            overflow: hidden;
+            margin-top: var(--spacing-2);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: var(--radius-pill);
+            transition: width 0.5s var(--ease-in-out);
+        }
+
+        .progress-bar-success {
+            background: linear-gradient(90deg, var(--ios-green), var(--ios-teal));
+        }
+
+        .progress-bar-warning {
+            background: linear-gradient(90deg, var(--ios-orange), var(--ios-yellow));
+        }
+
+        .progress-bar-danger {
+            background: linear-gradient(90deg, var(--ios-red), var(--ios-pink));
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin-bottom: var(--spacing-4);
+            padding: var(--spacing-4);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-lg);
+        }
+
+        .coin-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-2);
+        }
+
+        .coin-badge {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            padding: var(--spacing-2) var(--spacing-3);
+            background: var(--fill-tertiary);
+            border-radius: var(--radius-pill);
+            font-size: var(--font-footnote);
+            font-weight: var(--weight-medium);
+        }
+
+        .coin-badge-count {
+            color: var(--label-secondary);
+        }
+
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            padding: var(--spacing-2) var(--spacing-4);
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+            cursor: pointer;
+            transition: all 0.2s var(--ease-in-out);
+        }
+
+        .export-btn:hover {
+            background: rgba(0, 122, 255, 0.9);
+            transform: translateY(-1px);
+        }
+
+        .trader-stats-btn {
+            padding: var(--spacing-1) var(--spacing-3);
+            background: var(--fill-tertiary);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-md);
+            color: var(--label-primary);
+            font-size: var(--font-footnote);
+            font-weight: var(--weight-medium);
+            cursor: pointer;
+            transition: all 0.2s var(--ease-in-out);
+            margin-left: var(--spacing-2);
+        }
+
+        .trader-stats-btn:hover {
+            background: var(--ios-blue);
+            color: white;
+            border-color: var(--ios-blue);
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            width: 44px;
+            height: 44px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .mobile-menu-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .hamburger {
+            width: 20px;
+            height: 14px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hamburger span {
+            display: block;
+            height: 2px;
+            width: 100%;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle.active .hamburger span:nth-child(1) {
+            transform: translateY(6px) rotate(45deg);
+        }
+
+        .mobile-menu-toggle.active .hamburger span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active .hamburger span:nth-child(3) {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+
+        /* Mobile Overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-overlay.active {
+            opacity: 1;
+        }
+
+        /* Collapsible Sections */
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-4);
+            transition: all 0.15s var(--ease-in-out);
+        }
+
+        .collapsible-header:hover {
+            opacity: 0.8;
+        }
+
+        .collapsible-header:active {
+            transform: scale(0.98);
+        }
+
+        .collapsible-header-content {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-3);
+            flex: 1;
+        }
+
+        .collapsible-chevron {
+            font-size: var(--font-title3);
+            color: var(--label-tertiary);
+            transition: transform 0.3s var(--ease-in-out);
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .collapsible-chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            max-height: 3000px;
+            overflow: hidden;
+            transition: max-height 0.3s var(--ease-in-out), opacity 0.3s var(--ease-in-out);
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .collapsible-summary {
+            font-size: var(--font-caption1);
+            color: var(--label-secondary);
+            margin-left: var(--spacing-2);
+        }
+
+        /* Listing Modal Styles */
+        .listing-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s var(--ease-in-out);
+        }
+
+        .listing-modal.active {
+            display: flex;
+        }
+
+        .listing-modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .listing-modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--separator-non-opaque);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s var(--ease-in-out);
+            padding: var(--spacing-6);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .listing-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-5);
+            padding-bottom: var(--spacing-4);
+            border-bottom: 1px solid var(--separator-non-opaque);
+        }
+
+        .listing-modal-title {
+            flex: 1;
+        }
+
+        .listing-modal-asset-name {
+            font-size: var(--font-title2);
+            font-weight: var(--weight-bold);
+            color: var(--label-primary);
+            margin-bottom: var(--spacing-1);
+        }
+
+        .listing-modal-exchange {
+            font-size: var(--font-subheadline);
+            color: var(--label-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+
+        .listing-modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--fill-tertiary);
+            border: none;
+            color: var(--label-primary);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s var(--ease-in-out);
+            flex-shrink: 0;
+        }
+
+        .listing-modal-close:hover {
+            background: var(--fill-secondary);
+        }
+
+        .listing-modal-price-section {
+            text-align: center;
+            padding: var(--spacing-5) 0;
+            margin-bottom: var(--spacing-5);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-lg);
+        }
+
+        .listing-modal-current-price {
+            font-size: 48px;
+            font-weight: var(--weight-bold);
+            color: var(--label-primary);
+            margin-bottom: var(--spacing-2);
+            letter-spacing: -0.02em;
+        }
+
+        .listing-modal-price-change {
+            font-size: var(--font-title3);
+            font-weight: var(--weight-semibold);
+        }
+
+        .listing-modal-price-change.positive {
+            color: var(--ios-green);
+        }
+
+        .listing-modal-price-change.negative {
+            color: var(--ios-red);
+        }
+
+        .listing-modal-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-5);
+        }
+
+        .listing-modal-info-item {
+            background: var(--fill-quaternary);
+            padding: var(--spacing-3);
+            border-radius: var(--radius-md);
+        }
+
+        .listing-modal-info-label {
+            font-size: var(--font-caption1);
+            color: var(--label-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: var(--spacing-1);
+        }
+
+        .listing-modal-info-value {
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+        }
+
+        .listing-modal-chart-container {
+            margin-top: var(--spacing-5);
+            padding: var(--spacing-4);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-lg);
+        }
+
+        .listing-modal-chart-title {
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+            margin-bottom: var(--spacing-3);
+        }
+
+        .listing-modal-chart {
+            position: relative;
+            height: 200px;
+        }
+
+        .btn-ai-summary-modal {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-ai-summary-modal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-ai-summary-modal:active {
+            transform: translateY(0);
+        }
+
+        .btn-ai-summary-modal:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .ai-icon {
+            font-size: 18px;
+        }
+
+        .ai-summary-content {
+            padding: var(--spacing-4);
+            background: var(--fill-quaternary);
+            border-radius: var(--radius-lg);
+            margin-top: var(--spacing-4);
+        }
+
+        .ai-summary-section {
+            padding: var(--spacing-4);
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-top: var(--spacing-3);
+        }
+
+        .ai-summary-header {
+            font-size: var(--font-subheadline);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+            margin-bottom: var(--spacing-2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-summary-text {
+            font-size: var(--font-callout);
+            color: var(--label-secondary);
+            line-height: 1.6;
+            margin-bottom: var(--spacing-3);
+        }
+
+        .ai-summary-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-3);
+            margin-top: var(--spacing-3);
+            padding-top: var(--spacing-3);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .ai-summary-metric {
+            text-align: center;
+        }
+
+        .ai-summary-metric-label {
+            font-size: var(--font-caption2);
+            color: var(--label-tertiary);
+            margin-bottom: 4px;
+        }
+
+        .ai-summary-metric-value {
+            font-size: var(--font-body);
+            font-weight: var(--weight-semibold);
+            color: var(--label-primary);
+        }
+
+        .list-item.clickable {
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 1023px) {
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                bottom: 0;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+            }
+
+            .sidebar.mobile-open {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- MOBILE MENU TOGGLE -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation menu">
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </button>
+
+        <!-- MOBILE OVERLAY -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">AO Trading</div>
+                <div class="sidebar-subtitle">Beta Dashboard</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboard</div>
+                    <a class="nav-link active" data-page="overview">
+                        <span class="nav-link-icon">📊</span>
+                        Overview
+                    </a>
+                    <a class="nav-link" data-page="signals">
+                        <span class="nav-link-icon">⚡</span>
+                        Signals & Traders
+                    </a>
+                    <a class="nav-link" data-page="listings">
+                        <span class="nav-link-icon">🆕</span>
+                        New Listings
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">System</div>
+                    <a class="nav-link" data-page="health">
+                        <span class="nav-link-icon">💚</span>
+                        System Health
+                    </a>
+                </div>
+            </nav>
+
+            <div class="status-indicator-container">
+                <span class="status-dot"></span>
+                <span class="status-text" id="connection-status">Connecting...</span>
+
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="theme-toggle-btn">
+                <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+                <span id="theme-text">Dark Mode</span>
+            </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- OVERVIEW PAGE -->
+            <div class="page active" id="page-overview">
+                <div class="page-header">
+                    <h1 class="page-title">Overview</h1>
+                    <p class="page-subtitle">Real-time trading metrics and market summary</p>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="card-grid mb-6">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(0, 122, 255, 0.15);">
+                            📡
+                        </div>
+                        <div class="stat-value" id="ws-active">-</div>
+                        <div class="stat-label">Active WebSockets</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(52, 199, 89, 0.15);">
+                            ⚡
+                        </div>
+                        <div class="stat-value" id="active-signals">-</div>
+                        <div class="stat-label">Active Signals</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(255, 159, 10, 0.15);">
+                            🆕
+                        </div>
+                        <div class="stat-value" id="new-listings">-</div>
+                        <div class="stat-label">New Listings (24h)</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(212, 175, 55, 0.15);">
+                            💚
+                        </div>
+                        <div class="stat-value" id="health-score">-</div>
+                        <div class="stat-label">System Health</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(175, 82, 222, 0.15);">
+                            📅
+                        </div>
+                        <div class="stat-value" id="next-post-time">-</div>
+                        <div class="stat-label">Next Scheduled Post</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(255, 149, 0, 0.15);">
+                            📰
+                        </div>
+                        <div class="stat-value" id="news-cache-status">-</div>
+                        <div class="stat-label">News Cache Status</div>
+                    </div>
+                </div>
+
+                <!-- Market Summary -->
+                <div class="card mb-6" id="market-summary-card">
+                    <div class="card-header">
+                        <h3 class="card-title">AI Market Summary</h3>
+                        <span class="card-badge">Claude AI</span>
+                    </div>
+                    <div id="market-summary-content">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading market analysis...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Performers -->
+                <h3 class="page-title" style="font-size: var(--font-title2); margin-bottom: var(--spacing-4);">Top Performers</h3>
+                <div class="list-group mb-6" id="top-performers-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading top performers...</div>
+
+                    </div>
+                </div>
+
+                <!-- Active Traders -->
+                <h3 class="page-title" style="font-size: var(--font-title2); margin-bottom: var(--spacing-4);">Active Traders</h3>
+                <div class="list-group" id="active-traders-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading traders...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIGNALS PAGE -->
+            <div class="page" id="page-signals">
+                <div class="page-header">
+                    <h1 class="page-title">Signals & Traders</h1>
+                    <p class="page-subtitle">Live trade signals and trader analytics</p>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div style="display: flex; gap: var(--spacing-3); margin-bottom: var(--spacing-3); flex-wrap: wrap;">
+                    <button class="filter-button filter-button-active" data-status="active" onclick="filterTradesByStatus('active')">
+                        📈 Active
+                    </button>
+                    <button class="filter-button" data-status="closed" onclick="filterTradesByStatus('closed')">
+                        ✅ Closed
+                    </button>
+                    <button class="filter-button" data-status="all" onclick="filterTradesByStatus('all')">
+                        📊 All
+                    </button>
+                    
+                    <!-- Trader Filter Dropdown -->
+                    <div class="trader-filter-container">
+                        <span class="trader-filter-label">👤 Trader:</span>
+                        <select id="trader-filter-select" class="trader-filter-select" onchange="filterByTrader()">
+                            <option value="all">All Traders</option>
+                            <!-- Options populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Days Filter Buttons -->
+                <div style="display: flex; gap: var(--spacing-3); margin-bottom: var(--spacing-5); flex-wrap: wrap;">
+                    <button class="filter-button" data-days="7" onclick="filterByDays(168)">
+                        7 Days
+                    </button>
+                    <button class="filter-button" data-days="30" onclick="filterByDays(720)">
+                        30 Days
+                    </button>
+                    <button class="filter-button filter-button-active" data-days="60" onclick="filterByDays(1440)">
+                        60 Days
+                    </button>
+                    <button class="filter-button" data-days="all" onclick="filterByDays(null)">
+                        All Time
+                    </button>
+                </div>
+
+                <!-- Market Context -->
+                <div class="card mb-6" id="signals-context-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Market Context</h3>
+                        <span class="card-badge">AI Analysis</span>
+                    </div>
+                    <div id="signals-context-content">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading context...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Closed Trade Statistics -->
+                <div class="card mb-6" id="closed-stats-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Closed Trade Statistics</h3>
+                        <span class="card-badge">Last 60 Days</span>
+                    </div>
+                    <div id="closed-stats-content">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading statistics...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Entry Section -->
+                <div id="pending-entry-section" style="display: block;">
+                    <h3 class="page-title" style="font-size: var(--font-title2); margin-bottom: var(--spacing-4); color: var(--warning);">⏳ Pending Entry</h3>
+                    <div class="list-group mb-6" id="pending-entry-list">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading pending entries...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signals List -->
+                <h3 class="page-title" id="signals-list-title" style="font-size: var(--font-title2); margin-bottom: var(--spacing-4);">Active Signals</h3>
+                <div class="list-group mb-6" id="signals-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading signals...</div>
+                    </div>
+                </div>
+
+                <!-- Traders List -->
+                <h3 class="page-title" style="font-size: var(--font-title2); margin-bottom: var(--spacing-4);">All Traders</h3>
+                <div class="list-group" id="all-traders-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading traders...</div>
+                    </div>
+                </div>
+
+                <!-- Trader Leaderboard -->
+                <div class="card mt-6" id="trader-leaderboard-card">
+                    <div class="card-header">
+                        <h3 class="card-title">🏆 Trader Leaderboard</h3>
+                        <span class="card-badge">Top Performers</span>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div style="display: flex; gap: var(--spacing-3); margin: var(--spacing-4); flex-wrap: wrap; align-items: center;">
+                        <!-- Time Range Filter -->
+                        <div style="display: flex; gap: var(--spacing-2);">
+                            <button class="filter-button" onclick="updateLeaderboard('7d', null)">
+                                7 Days
+                            </button>
+                            <button class="filter-button filter-button-active" id="leaderboard-time-30d" onclick="updateLeaderboard('30d', null)">
+                                30 Days
+                            </button>
+                            <button class="filter-button" onclick="updateLeaderboard('all', null)">
+                                All Time
+                            </button>
+                        </div>
+
+                        <!-- Sort Filter -->
+                        <div style="display: flex; gap: var(--spacing-2); margin-left: auto;">
+                            <button class="filter-button filter-button-active" id="leaderboard-sort-win_rate" onclick="updateLeaderboard(null, 'win_rate')">
+                                Sort: Win Rate
+                            </button>
+                            <button class="filter-button" onclick="updateLeaderboard(null, 'total_profit')">
+                                Sort: Total Profit
+                            </button>
+                            <button class="filter-button" onclick="updateLeaderboard(null, 'total_trades')">
+                                Sort: Total Trades
+                            </button>
+                            <button class="filter-button" onclick="updateLeaderboard(null, 'avg_profit')">
+                                Sort: Avg Profit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Table -->
+                    <div id="leaderboard-content" style="overflow-x: auto;">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <div class="loading-text">Loading leaderboard...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTINGS PAGE -->
+            <div class="page" id="page-listings">
+                <div class="page-header">
+                    <h1 class="page-title">New Listings</h1>
+                    <p class="page-subtitle">Recent exchange listings with price tracking</p>
+                </div>
+
+                <!-- Time Range Filter Buttons -->
+                <div style="display: flex; gap: var(--spacing-3); margin-bottom: var(--spacing-4); flex-wrap: wrap;">
+                    <button class="filter-button" data-hours="24" onclick="filterListingsByTimeRange(24)">
+                        24h
+                    </button>
+                    <button class="filter-button filter-button-active" data-hours="168" onclick="filterListingsByTimeRange(168)">
+                        7d
+                    </button>
+                    <button class="filter-button" data-hours="720" onclick="filterListingsByTimeRange(720)">
+                        30d
+                    </button>
+                </div>
+
+                <!-- Exchange Filter -->
+                <div class="exchange-filter-container">
+                    <span class="exchange-filter-label">Exchanges:</span>
+                    <div class="exchange-filter-dropdown">
+                        <button class="exchange-filter-button" id="exchange-filter-button" onclick="toggleExchangeFilter()">
+                            <span id="exchange-filter-text">All Exchanges</span>
+                            <span>▼</span>
+                        </button>
+                        <div class="exchange-filter-options" id="exchange-filter-options">
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" id="exchange-all" value="all" onchange="selectAllExchanges(this)">
+                                <label for="exchange-all">All Exchanges</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-binance" value="Binance" onchange="updateExchangeFilter()">
+                                <label for="exchange-binance">Binance</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-bybit" value="Bybit" onchange="updateExchangeFilter()">
+                                <label for="exchange-bybit">Bybit</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-okx" value="OKX" onchange="updateExchangeFilter()">
+                                <label for="exchange-okx">OKX</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-mexc" value="MEXC" onchange="updateExchangeFilter()">
+                                <label for="exchange-mexc">MEXC</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-hyperliquid" value="Hyperliquid" onchange="updateExchangeFilter()">
+                                <label for="exchange-hyperliquid">Hyperliquid</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-coinbase" value="Coinbase" onchange="updateExchangeFilter()">
+                                <label for="exchange-coinbase">Coinbase</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-crypto-com" value="Crypto.com" onchange="updateExchangeFilter()">
+                                <label for="exchange-crypto-com">Crypto.com</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-upbit" value="Upbit" onchange="updateExchangeFilter()">
+                                <label for="exchange-upbit">Upbit</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-kucoin" value="KuCoin" onchange="updateExchangeFilter()">
+                                <label for="exchange-kucoin">KuCoin</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-gateio" value="Gate.io" onchange="updateExchangeFilter()">
+                                <label for="exchange-gateio">Gate.io</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-bingx" value="BingX" onchange="updateExchangeFilter()">
+                                <label for="exchange-bingx">BingX</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-blofin" value="BloFin" onchange="updateExchangeFilter()">
+                                <label for="exchange-blofin">BloFin</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-bitget" value="Bitget" onchange="updateExchangeFilter()">
+                                <label for="exchange-bitget">Bitget</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-htx" value="HTX" onchange="updateExchangeFilter()">
+                                <label for="exchange-htx">HTX</label>
+                            </div>
+                            <div class="exchange-filter-option">
+                                <input type="checkbox" class="exchange-checkbox" id="exchange-kraken" value="Kraken" onchange="updateExchangeFilter()">
+                                <label for="exchange-kraken">Kraken</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="exchange-filter-clear" onclick="clearExchangeFilter()">Clear</button>
+                </div>
+
+                <!-- Listings Count Display -->
+                <div class="listings-count" id="listings-count">Loading...</div>
+
+                <div class="list-group" id="listings-list">
+                    <div class="loading-container">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading listings...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTING MODAL -->
+            <div class="listing-modal" id="listing-modal">
+                <div class="listing-modal-backdrop" onclick="closeListingModal()"></div>
+                <div class="listing-modal-content">
+                    <div class="listing-modal-header">
+                        <div class="listing-modal-title">
+                            <h2 class="listing-modal-asset-name" id="modal-asset-name">-</h2>
+                            <div class="listing-modal-exchange">
+                                <span id="modal-exchange">-</span>
+                                <span style="color: var(--label-tertiary);">·</span>
+                                <span id="modal-listing-time">-</span>
+                            </div>
+                        </div>
+                        <button class="listing-modal-close" onclick="closeListingModal()" aria-label="Close modal">×</button>
+                    </div>
+
+                    <div class="listing-modal-price-section">
+                        <div class="listing-modal-current-price" id="modal-current-price">$0.000000</div>
+                        <div class="listing-modal-price-change" id="modal-price-change">-</div>
+                    </div>
+
+                    <div class="listing-modal-info-grid">
+                        <div class="listing-modal-info-item">
+                            <div class="listing-modal-info-label">Symbol</div>
+                            <div class="listing-modal-info-value" id="modal-symbol">-</div>
+                        </div>
+                        <div class="listing-modal-info-item">
+                            <div class="listing-modal-info-label">Exchange</div>
+                            <div class="listing-modal-info-value" id="modal-exchange-full">-</div>
+                        </div>
+                        <div class="listing-modal-info-item">
+                            <div class="listing-modal-info-label">First Seen</div>
+                            <div class="listing-modal-info-value" id="modal-first-seen">-</div>
+                        </div>
+                        <div class="listing-modal-info-item">
+                            <div class="listing-modal-info-label">24h Change</div>
+                            <div class="listing-modal-info-value" id="modal-24h-change">-</div>
+                        </div>
+                    </div>
+
+                    <div class="listing-modal-chart-container">
+                        <div class="listing-modal-chart-title">Price History</div>
+                        <div class="listing-modal-chart">
+                            <canvas id="modal-price-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- AI Summary Section -->
+                    <div class="listing-modal-ai-section" id="modal-ai-section" style="margin-top: 24px;">
+                        <button class="btn-ai-summary-modal" id="btn-ai-summary" onclick="loadAISummary()">
+                            <span class="ai-icon">✨</span>
+                            <span>Generate AI Summary</span>
+                        </button>
+                        <div id="ai-summary-content" style="display: none; margin-top: 16px;">
+                            <!-- Content will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SYSTEM HEALTH PAGE -->
+            <div class="page" id="page-health">
+                <div class="page-header">
+                    <h1 class="page-title">System Health</h1>
+                    <p class="page-subtitle">System metrics and resource monitoring</p>
+                </div>
+
+                <div class="card-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(0, 122, 255, 0.15);">
+                            💻
+                        </div>
+                        <div class="stat-value" id="cpu-usage">-</div>
+                        <div class="stat-label">CPU Usage</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(175, 82, 222, 0.15);">
+                            🧠
+                        </div>
+                        <div class="stat-value" id="mem-usage">-</div>
+                        <div class="stat-label">Memory Usage</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(255, 159, 10, 0.15);">
+                            💾
+                        </div>
+                        <div class="stat-value" id="disk-usage">-</div>
+                        <div class="stat-label">Disk Usage</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(52, 199, 89, 0.15);">
+                            📡
+                        </div>
+                        <div class="stat-value" id="ws-uptime">-</div>
+                        <div class="stat-label">WebSocket Uptime</div>
+                    </div>
+                </div>
+
+                <!-- WebSocket Connections Details -->
+                <div class="card mb-6" style="margin-top: var(--spacing-6);">
+                    <div class="collapsible-header" onclick="toggleSection('websocket')">
+                        <div class="collapsible-header-content">
+                            <h3 class="card-title">WebSocket Connections</h3>
+                            <span class="card-badge" id="ws-total-badge">0/0</span>
+                            <span class="collapsible-summary" id="websocket-summary"></span>
+                        </div>
+                        <span class="collapsible-chevron expanded" id="websocket-chevron">▼</span>
+                    </div>
+                    <div id="websocket-content" class="collapsible-content">
+                        <div id="websocket-details-list">
+                            <div class="loading-container">
+                                <div class="spinner"></div>
+                                <div class="loading-text">Loading WebSocket details...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Data Sources Section -->
+                <div class="card mb-6">
+                    <div class="collapsible-header" onclick="toggleSection('price-sources')">
+                        <div class="collapsible-header-content">
+                            <h3 class="card-title">Price Data Sources</h3>
+                            <span class="card-badge" id="price-sources-badge">0/2</span>
+                            <span class="collapsible-summary" id="price-sources-summary"></span>
+                        </div>
+                        <span class="collapsible-chevron" id="price-sources-chevron">▼</span>
+                    </div>
+                    <div id="price-sources-content" class="collapsible-content collapsed">
+                        <div id="price-sources-list">
+                            <!-- yfinance API -->
+                            <div class="ws-item">
+                                <div class="ws-item-header">
+                                    <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+                                        <span class="ws-status-indicator ws-status-disconnected" id="yfinance-indicator"></span>
+                                        <span style="font-weight: var(--weight-semibold);">yfinance</span>
+                                    </div>
+                                    <span class="pill pill-info" id="yfinance-status">Checking...</span>
+                                </div>
+                            </div>
+
+                            <!-- Alpha Vantage API -->
+                            <div class="ws-item">
+                                <div class="ws-item-header">
+                                    <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+                                        <span class="ws-status-indicator ws-status-disconnected" id="alphavantage-indicator"></span>
+                                        <span style="font-weight: var(--weight-semibold);">Alpha Vantage</span>
+                                    </div>
+                                    <span class="pill pill-info" id="alphavantage-status">Checking...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RSS Feeds Section -->
+                <div class="card mb-6">
+                    <div class="collapsible-header" onclick="toggleSection('rss')">
+                        <div class="collapsible-header-content">
+                            <h3 class="card-title">RSS News Feeds</h3>
+                            <span class="card-badge" id="rss-badge">0/0</span>
+                            <span class="collapsible-summary" id="rss-summary"></span>
+                        </div>
+                        <span class="collapsible-chevron" id="rss-chevron">▼</span>
+                    </div>
+                    <div id="rss-content" class="collapsible-content collapsed">
+                        <div id="rss-feeds-content">
+                            <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="rss-total">-</div>
+                                    <div class="stat-box-label">Total Feeds</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="rss-active">-</div>
+                                    <div class="stat-box-label">Active</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="rss-last-refresh">-</div>
+                                    <div class="stat-box-label">Last Refresh</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="rss-articles">-</div>
+                                    <div class="stat-box-label">Articles (24h)</div>
+                                </div>
+                            </div>
+                            <div id="rss-feeds-list" style="margin-top: var(--spacing-4);">
+                                <div class="loading-container">
+                                    <div class="spinner"></div>
+                                    <div class="loading-text">Loading RSS feeds...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- News Cache Section -->
+                <div class="card mb-6">
+                    <div class="collapsible-header" onclick="toggleSection('news-cache')">
+                        <div class="collapsible-header-content">
+                            <h3 class="card-title">News Cache</h3>
+                            <span class="card-badge">Cached Data</span>
+                            <span class="collapsible-summary" id="news-cache-summary"></span>
+                        </div>
+                        <span class="collapsible-chevron" id="news-cache-chevron">▼</span>
+                    </div>
+                    <div id="news-cache-content" class="collapsible-content collapsed">
+                        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="news-cache-articles">-</div>
+                                <div class="stat-box-label">Cached Articles</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="news-cache-last-update">-</div>
+                                <div class="stat-box-label">Last Updated</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="news-cache-size">-</div>
+                                <div class="stat-box-label">Cache Size</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sentinel Assets Section -->
+                <div class="card mb-6">
+                    <div class="collapsible-header" onclick="toggleSection('sentinel')">
+                        <div class="collapsible-header-content">
+                            <h3 class="card-title">Sentinel Assets</h3>
+                            <span class="card-badge" id="sentinel-badge">0 monitored</span>
+                            <span class="collapsible-summary" id="sentinel-summary"></span>
+                        </div>
+                        <span class="collapsible-chevron" id="sentinel-chevron">▼</span>
+                    </div>
+                    <div id="sentinel-content" class="collapsible-content collapsed">
+                        <div id="sentinel-assets-content">
+                            <div class="stats-grid">
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="sentinel-total">-</div>
+                                    <div class="stat-box-label">Total Assets</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="sentinel-monitored">-</div>
+                                    <div class="stat-box-label">Monitored</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="sentinel-last-update">-</div>
+                                    <div class="stat-box-label">Last Update</div>
+                                </div>
+                                <div class="stat-box">
+                                    <div class="stat-box-value" id="sentinel-alerts">-</div>
+                                    <div class="stat-box-label">Active Alerts</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Database Section -->
+                <div class="card mb-6">
+                    <div class="collapsible-header" onclick="toggleSection('asset-db')">
+                        <div class="collapsible-header-content">
+                            <h3 class="card-title">Asset Database</h3>
+                            <span class="card-badge">Verification Status</span>
+                            <span class="collapsible-summary" id="asset-db-summary"></span>
+                        </div>
+                        <span class="collapsible-chevron" id="asset-db-chevron">▼</span>
+                    </div>
+                    <div id="asset-db-content" class="collapsible-content collapsed">
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="asset-db-total">-</div>
+                                <div class="stat-box-label">Total Assets</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="asset-db-verified">-</div>
+                                <div class="stat-box-label">Verified</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="asset-db-last-verify">-</div>
+                                <div class="stat-box-label">Last Verification</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-value" id="asset-db-size">-</div>
+                                <div class="stat-box-label">Database Size</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // =============================================
+        // CONFIGURATION
+        // =============================================
+        const API_BASE = window.location.origin;
+        const AUTH_HEADER = 'aotrading2025';
+        let currentSignalsStatus = 'active'; // Track current filter: active, closed, all
+        let currentTrader = 'all'; // Track current trader filter
+        let currentDaysFilter = 1440; // Track current days filter (60 days in hours, default)
+
+        // API Helper
+        async function fetchAPI(endpoint) {
+            try {
+                console.log(`📡 Fetching: ${endpoint}`);
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'X-Dashboard-Auth': AUTH_HEADER }
+                });
+                if (!response.ok) {
+                    console.error(`❌ API error ${response.status}: ${endpoint}`);
+                    return null;  // Return null instead of throwing
+                }
+                const data = await response.json();
+                console.log(`✅ Success: ${endpoint}`, data);
+                return data;
+            } catch (error) {
+                console.error(`❌ Fetch failed for ${endpoint}:`, error);
+                return null;  // Return null instead of throwing
+            }
+        }
+
+        // Formatters
+        function formatTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Filter signals by days
+        function filterByDays(hours) {
+            console.log(`📅 Filtering trades by days: ${hours === null ? "All Time" : hours + " hours"}`);
+
+            // Update current days filter
+            currentDaysFilter = hours;
+
+            // Update button states
+            document.querySelectorAll('[data-days]').forEach(btn => {
+                btn.classList.remove('filter-button-active');
+                if ((hours === null && btn.dataset.days === 'all') || (hours !== null && parseInt(btn.dataset.days) === (hours === 168 ? 7 : hours === 720 ? 30 : hours === 1440 ? 60 : null))) {
+                    btn.classList.add('filter-button-active');
+                }
+            });
+
+            // Reload signals with new filter
+            loadSignalsPage();
+        }
+
+        // Populate trader dropdown with all traders
+        async function populateTraderDropdown() {
+            try {
+                const tradersData = await fetchAPI('/api/traders');
+                
+                if (tradersData.success && tradersData.traders) {
+                    const select = document.getElementById('trader-filter-select');
+                    
+                    // Keep "All Traders" option and add traders
+                    const traderOptions = tradersData.traders
+                        .map(trader => `<option value="${trader.trader_name}">${trader.trader_name} (${trader.total_trades})</option>`)
+                        .join('');
+                    
+                    select.innerHTML = `<option value="all">All Traders</option>${traderOptions}`;
+                    
+                    console.log(`✅ Loaded ${tradersData.traders.length} traders`);
+                }
+            } catch (err) {
+                console.error('Failed to load traders:', err);
+            }
+        }
+
+        async function loadListingsPage() {
+            try {
+                const data = await fetchAPI('/api/listings/unified?hours=168&limit=100');
+                if (data.success) {
+                    const listings = data.listings || [];
+                    if (listings.length === 0) {
+                        document.getElementById('listings-list').innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🆕</div>
+                                <div class="empty-state-title">No Recent Listings</div>
+                                <div class="empty-state-subtitle">New exchange listings will appear here</div>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('listings-list').innerHTML = listings.map(listing => `
+                            <div class="list-item" data-listing="${listing.base_coin}-${listing.exchange}">
+                                <div class="list-item-icon" style="background: rgba(212, 175, 55, 0.15); color: var(--accent-gold);">
+                                    🆕
+                                </div>
+                                <div class="list-item-content">
+                                    <div class="list-item-title">${listing.base_coin}</div>
+                                    <div class="list-item-subtitle">${listing.exchange} · ${formatTime(listing.first_seen)}</div>
+                                </div>
+                                <div class="list-item-trailing">
+                                    <div style="text-align: right;">
+                                        <div style="font-size: var(--font-subheadline); font-weight: var(--weight-semibold);">
+                                            $${listing.prices?.current?.toFixed(6) || 'N/A'}
+                                        </div>
+                                        ${listing.movements?.total_pct !== undefined && listing.movements.total_pct !== null ? `
+                                            <div class="pill ${listing.movements.total_pct >= 0 ? 'pill-success' : 'pill-danger'}" style="margin-top: 4px;">
+                                                ${listing.movements.total_pct >= 0 ? '+' : ''}${Number(listing.movements.total_pct).toFixed(2)}%
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading listings page:', error);
+            }
+        }
+        // Toggle WebSocket details expansion
+        function toggleWebSocketDetails(exchangeName) {
+            const detailsElement = document.getElementById(`ws-details-${exchangeName}`);
+            if (detailsElement) {
+                detailsElement.classList.toggle('expanded');
+            }
+        }
+
+        // Load WebSocket details
+        async function loadWebSocketDetails() {
+            try {
+                // Call correct endpoint
+                const response = await fetchAPI('/api/websocket/status');
+
+                if (response && response.success) {
+                    // Transform API response to match displayWebSocketDetails expectations
+                    const wsData = {
+                        success: true,
+                        active: response.connected_exchanges || 0,
+                        total: response.total_exchanges || 0,
+                        connections: response.connections.map(conn => ({
+                            exchange: conn.exchange,
+                            status: conn.status === 'connected' ? 'active' : conn.status,  // Map 'connected' to 'active'
+                            symbols: null,  // Not provided by API yet
+                            uptime: conn.uptime || 0,
+                            latency: conn.latency || 0,
+                            messages_received: conn.messages_received || 0,
+                            last_update: Date.now()
+                        }))
+                    };
+
+                    displayWebSocketDetails(wsData);
+                } else {
+                    throw new Error('Failed to fetch WebSocket status');
+                }
+            } catch (error) {
+                console.error('Error loading WebSocket details:', error);
+                document.getElementById('websocket-details-list').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Failed to load WebSocket data</div>
+                        <div class="empty-state-subtitle">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Parse WebSocket data from metrics
+        function parseWebSocketsFromMetrics(metrics, stats) {
+            const connections = [];
+
+            // Parse from available data - this is a placeholder
+            // Real implementation would depend on what's in metrics
+            if (stats.websockets) {
+                // Create mock exchanges based on active/total count
+                const exchanges = ['Binance', 'ByBit', 'OKX', 'Gate.io', 'MEXC'];
+                const active = stats.websockets.active || 0;
+                const total = stats.websockets.total || 0;
+
+                for (let i = 0; i < total; i++) {
+                    const exchange = exchanges[i] || `Exchange ${i+1}`;
+                    connections.push({
+                        exchange: exchange,
+                        status: i < active ? 'active' : 'disconnected',
+                        symbols: i < active ? (5 + i * 3) : 0,
+                        uptime: i < active ? 98.5 + (Math.random() * 1.5) : 0,
+                        last_update: i < active ? Date.now() - (Math.random() * 300000) : null,
+                        error_count: i < active ? Math.floor(Math.random() * 3) : null
+                    });
+                }
+            }
+
+            return connections;
+        }
+
+        // Display WebSocket details
+        function displayWebSocketDetails(data) {
+            const container = document.getElementById('websocket-details-list');
+            const badge = document.getElementById('ws-total-badge');
+
+            // Update badge
+            badge.textContent = `${data.active}/${data.total}`;
+
+            // Update summary
+            updateSectionSummaries({ ws_connections: data.connections || [] });
+
+            // Display connections
+            if (!data.connections || data.connections.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📡</div>
+                        <div class="empty-state-title">No WebSocket Connections</div>
+                        <div class="empty-state-subtitle">Connection data will appear here</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = data.connections.map(conn => {
+                const statusClass = conn.status === 'active' ? 'ws-status-active' :
+                                  conn.status === 'connecting' ? 'ws-status-connecting' :
+                                  'ws-status-disconnected';
+                const statusText = conn.status === 'active' ? 'Active' :
+                                 conn.status === 'connecting' ? 'Connecting' :
+                                 'Disconnected';
+                const statusIcon = conn.status === 'active' ? '🟢' :
+                                 conn.status === 'connecting' ? '🟡' :
+                                 '🔴';
+
+                return `
+                    <div class="ws-item" onclick="toggleWebSocketDetails('${conn.exchange}')">
+                        <div class="ws-item-header">
+                            <div class="ws-item-name">
+                                <span>${statusIcon}</span>
+                                <span>${conn.exchange}</span>
+                            </div>
+                            <div class="ws-item-status">
+                                <span class="ws-status-indicator ${statusClass}"></span>
+                                <span>${statusText}</span>
+                                ${conn.symbols ? `<span class="pill pill-info" style="margin-left: var(--spacing-2);">${conn.symbols} symbols</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="ws-item-details" id="ws-details-${conn.exchange}">
+                            <div class="ws-detail-grid">
+                                ${conn.uptime !== undefined ? `
+                                    <div class="ws-detail-item">
+                                        <div class="ws-detail-label">Uptime</div>
+                                        <div class="ws-detail-value">${conn.uptime.toFixed(1)}%</div>
+                                    </div>
+                                ` : ''}
+                                ${conn.symbols !== undefined ? `
+                                    <div class="ws-detail-item">
+                                        <div class="ws-detail-label">Active Symbols</div>
+                                        <div class="ws-detail-value">${conn.symbols}</div>
+                                    </div>
+                                ` : ''}
+                                ${conn.last_update ? `
+                                    <div class="ws-detail-item">
+                                        <div class="ws-detail-label">Last Update</div>
+                                        <div class="ws-detail-value">${formatTime(conn.last_update)}</div>
+                                    </div>
+                                ` : ''}
+                                ${conn.error_count !== undefined && conn.error_count !== null ? `
+                                    <div class="ws-detail-item">
+                                        <div class="ws-detail-label">Error Count</div>
+                                        <div class="ws-detail-value ${conn.error_count > 0 ? 'text-warning' : 'text-success'}">${conn.error_count}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${conn.symbol_list && conn.symbol_list.length > 0 ? `
+                                <div style="margin-top: var(--spacing-4);">
+                                    <div class="ws-detail-label">Monitored Symbols</div>
+                                    <div class="ws-symbols-list">
+                                        ${conn.symbol_list.map(sym => `<span class="ws-symbol-badge">${sym}</span>`).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+
+
+        // =============================================
+        // NEW DATA SOURCE LOADING FUNCTIONS
+        // =============================================
+        async function loadPriceDataSources() {
+            try {
+                // Check if API endpoint exists, otherwise show placeholder
+                const data = await fetchAPI('/api/system/price-sources').catch(() => null);
+
+                let activeCount = 0;
+
+                if (data && data.success) {
+                    // Update yfinance status
+                    const yfinance = data.sources?.find(s => s.name === 'yfinance');
+                    if (yfinance) {
+                        const isActive = yfinance.status === 'active' || yfinance.status === 'configured';
+                        document.getElementById('yfinance-status').textContent =
+                            isActive ? 'Active' : 'Disconnected';
+                        document.getElementById('yfinance-status').className =
+                            `pill ${isActive ? 'pill-success' : 'pill-danger'}`;
+                        document.getElementById('yfinance-indicator').className =
+                            `ws-status-indicator ${isActive ? 'ws-status-active' : 'ws-status-disconnected'}`;
+                        if (isActive) activeCount++;
+                    }
+
+                    // Update Alpha Vantage status
+                    const alphavantage = data.sources?.find(s => s.name === 'Alpha Vantage');
+                    if (alphavantage) {
+                        const isActive = alphavantage.status === 'active' || alphavantage.status === 'configured';
+                        document.getElementById('alphavantage-status').textContent =
+                            isActive ? 'Active' : (alphavantage.status === 'not configured' ? 'Not Configured' : 'Disconnected');
+                        document.getElementById('alphavantage-status').className =
+                            `pill ${isActive ? 'pill-success' : (alphavantage.status === 'not configured' ? 'pill-warning' : 'pill-danger')}`;
+                        document.getElementById('alphavantage-indicator').className =
+                            `ws-status-indicator ${isActive ? 'ws-status-active' : 'ws-status-disconnected'}`;
+                        if (isActive) activeCount++;
+                    }
+                } else {
+                    // Show "No data" state
+                    document.getElementById('yfinance-status').textContent = 'No data';
+                    document.getElementById('yfinance-status').className = 'pill pill-warning';
+                    document.getElementById('alphavantage-status').textContent = 'No data';
+                    document.getElementById('alphavantage-status').className = 'pill pill-warning';
+                }
+
+                // Update badge
+                document.getElementById('price-sources-badge').textContent = `${activeCount}/2`;
+            } catch (error) {
+                console.error('Error loading price data sources:', error);
+            }
+        }
+
+        async function loadRSSFeeds() {
+            try {
+                const data = await fetchAPI('/api/system/rss-feeds').catch(() => null);
+
+                if (data && data.success) {
+                    document.getElementById('rss-total').textContent = data.total_feeds || 0;
+                    document.getElementById('rss-active').textContent = data.active_feeds || 0;
+                    document.getElementById('rss-last-refresh').textContent = '15 min';
+                    document.getElementById('rss-articles').textContent = '-';
+                    document.getElementById('rss-badge').textContent =
+                        `${data.active_feeds || 0}/${data.total_feeds || 0}`;
+
+                    // Update summary
+                    updateSectionSummaries({
+                        rss_feeds: {
+                            total: data.total_feeds || 0,
+                            active: data.active_feeds || 0,
+                            articles_24h: 0
+                        }
+                    });
+
+                    // Render feed details list
+                    const feedsList = document.getElementById('rss-feeds-list');
+                    if (feedsList && data.feeds && data.feeds.length > 0) {
+                        feedsList.innerHTML = data.feeds.map(feed => {
+                            const statusClass = feed.status === 'active' ? 'ws-status-active' :
+                                              feed.status === 'inactive' ? 'ws-status-disconnected' :
+                                              'ws-status-connecting';
+                            const statusIcon = feed.status === 'active' ? '🟢' :
+                                             feed.status === 'inactive' ? '🔴' : '🟡';
+                            const statusText = feed.status === 'active' ? 'Active' :
+                                             feed.status === 'inactive' ? 'Inactive' : 'Unknown';
+
+                            return `
+                                <div class="ws-item">
+                                    <div class="ws-item-header">
+                                        <div class="ws-item-name">
+                                            <span>${statusIcon}</span>
+                                            <span style="font-weight: 500;">${feed.name}</span>
+                                        </div>
+                                        <div class="ws-item-status">
+                                            <span class="ws-status-indicator ${statusClass}"></span>
+                                            <span>${statusText}</span>
+                                            <span class="pill pill-info" style="margin-left: var(--spacing-2);">
+                                                ${feed.update_frequency}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ws-item-details" style="display: block; margin-top: var(--spacing-2); padding-top: var(--spacing-2); border-top: 1px solid var(--ios-separator);">
+                                        <div style="color: var(--ios-secondary-label); font-size: 0.875rem; word-break: break-all;">
+                                            ${feed.url}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else if (feedsList) {
+                        feedsList.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📰</div>
+                                <div class="empty-state-title">No RSS Feeds</div>
+                                <div class="empty-state-subtitle">Feed data will appear here</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Show zeros
+                    ['rss-total', 'rss-active', 'rss-articles'].forEach(id => {
+                        document.getElementById(id).textContent = '0';
+                    });
+                    document.getElementById('rss-last-refresh').textContent = 'No data';
+                    document.getElementById('rss-badge').textContent = '0/0';
+
+                    // Show empty state
+                    const feedsList = document.getElementById('rss-feeds-list');
+                    if (feedsList) {
+                        feedsList.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📰</div>
+                                <div class="empty-state-title">No RSS Feeds</div>
+                                <div class="empty-state-subtitle">Feed data will appear here</div>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading RSS feeds:', error);
+            }
+        }
+
+        async function loadNewsCache() {
+            try {
+                const data = await fetchAPI('/api/system/news-cache').catch(() => null);
+
+                if (data && data.success) {
+                    document.getElementById('news-cache-articles').textContent =
+                        data.cached_articles || 0;
+                    document.getElementById('news-cache-last-update').textContent =
+                        formatTime(data.last_update) || 'Never';
+                    document.getElementById('news-cache-size').textContent =
+                        (data.size_mb || 0).toFixed(2) + ' MB';
+
+                    // Update summary
+                    updateSectionSummaries({
+                        news_cache: {
+                            cached_articles: data.cached_articles || 0,
+                            cache_size_bytes: (data.size_mb || 0) * 1024 * 1024
+                        }
+                    });
+                } else {
+                    document.getElementById('news-cache-articles').textContent = 'No data';
+                    document.getElementById('news-cache-last-update').textContent = 'No data';
+                    document.getElementById('news-cache-size').textContent = 'No data';
+                }
+            } catch (error) {
+                console.error('Error loading news cache:', error);
+            }
+        }
+
+        async function loadSentinelAssets() {
+            try {
+                // Fetch both asset list and prices
+                const [assetsData, pricesData] = await Promise.all([
+                    fetchAPI('/api/sentinel/assets').catch(() => null),
+                    fetchAPI('/api/sentinel/prices').catch(() => null)
+                ]);
+
+                if (assetsData && assetsData.success && assetsData.assets) {
+                    // Update badge
+                    document.getElementById('sentinel-badge').textContent = `${assetsData.total_assets || 0} monitored`;
+
+                    // Update summary
+                    updateSectionSummaries({
+                        sentinel_assets: {
+                            monitored: assetsData.total_assets || 0,
+                            active_alerts: 0
+                        }
+                    });
+
+                    // Build HTML for sentinel assets with live prices
+                    const assetListHTML = assetsData.assets.map(asset => {
+                        // Get price from prices API
+                        let priceHTML = 'Loading...';
+                        let priceColor = 'var(--ios-blue)';
+
+                        if (pricesData && pricesData.success && pricesData.prices[asset.asset]) {
+                            const priceInfo = pricesData.prices[asset.asset];
+                            if (priceInfo.price !== null && priceInfo.price !== undefined) {
+                                const formattedPrice = priceInfo.price.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 6
+                                });
+                                priceHTML = `$${formattedPrice}`;
+                            } else {
+                                priceHTML = 'No data';
+                                priceColor = 'var(--ios-secondary-label)';
+                            }
+                        }
+
+                        return `
+                            <div style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--ios-separator); align-items: center;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 15px;">${asset.asset}</div>
+                                    <div style="font-size: 13px; color: var(--ios-secondary-label); margin-top: 2px;">
+                                        ${asset.total_sources} source${asset.total_sources !== 1 ? 's' : ''}
+                                    </div>
+                                </div>
+                                <div style="font-weight: 600; font-size: 15px; color: ${priceColor};">
+                                    ${priceHTML}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    document.getElementById('sentinel-assets-content').innerHTML = `
+                        <div style="background: var(--ios-grouped-background); border-radius: 10px; overflow: hidden;">
+                            ${assetListHTML}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('sentinel-assets-content').innerHTML = `
+                        <div style="text-align: center; padding: 24px; color: var(--ios-secondary-label);">
+                            No sentinel assets configured
+                        </div>
+                    `;
+                    document.getElementById('sentinel-badge').textContent = '0 monitored';
+                }
+            } catch (error) {
+                console.error('Error loading sentinel assets:', error);
+            }
+        }
+
+        async function loadAssetDatabase() {
+            try {
+                const data = await fetchAPI('/api/system/asset-database').catch(() => null);
+
+                if (data && data.success) {
+                    document.getElementById('asset-db-total').textContent = data.total_assets || 0;
+                    document.getElementById('asset-db-verified').textContent = data.verified || 0;
+                    document.getElementById('asset-db-last-verify').textContent =
+                        formatTime(data.last_verification) || 'Never';
+                    document.getElementById('asset-db-size').textContent =
+                        (data.size_mb || 0).toFixed(2) + ' MB';
+
+                    // Update summary
+                    updateSectionSummaries({
+                        asset_database: {
+                            total_assets: data.total_assets || 0,
+                            verified: data.verified || 0
+                        }
+                    });
+                } else {
+                    document.getElementById('asset-db-total').textContent = 'No data';
+                    document.getElementById('asset-db-verified').textContent = 'No data';
+                    document.getElementById('asset-db-last-verify').textContent = 'No data';
+                    document.getElementById('asset-db-size').textContent = 'No data';
+                }
+            } catch (error) {
+                console.error('Error loading asset database:', error);
+            }
+        }
+
+        async function loadHealthPage() {
+            try {
+                const data = await fetchAPI('/api/system/metrics');
+                if (data) {
+                    document.getElementById('cpu-usage').textContent = `${data.cpu?.usage_percent?.toFixed(1) || 0}%`;
+                    document.getElementById('mem-usage').textContent = `${data.memory?.percent?.toFixed(1) || 0}%`;
+                    document.getElementById('disk-usage').textContent = `${data.disk?.percent?.toFixed(1) || 0}%`;
+
+                    // Get WebSocket uptime from overview stats
+                    const statsData = await fetchAPI('/api/overview/stats');
+                    if (statsData && statsData.success && statsData.ws_connections) {
+                        const activeWS = statsData.ws_connections.filter(c => c?.status === 'active').length;
+                        const totalWS = statsData.ws_connections.length;
+                        const uptimePct = totalWS > 0 ? ((activeWS / totalWS) * 100) : 0;
+                        document.getElementById('ws-uptime').textContent = `${uptimePct.toFixed(1)}%`;
+                    }
+                }
+
+                // Load WebSocket details
+                await loadWebSocketDetails();
+
+                // Load all new sections
+                await loadPriceDataSources();
+                await loadRSSFeeds();
+                await loadNewsCache();
+                await loadSentinelAssets();
+                await loadAssetDatabase();
+            } catch (error) {
+                console.error('Error loading health page:', error);
+            }
+        }
+
+        // =============================================
+        // REAL-TIME UPDATE HANDLERS
+        // =============================================
+        function updateOverviewStats(data) {
+            document.getElementById('ws-active').textContent = `${data.ws_connections?.filter(c => c?.status === 'active').length || 0}/${data.ws_connections?.length || 0}`;
+            document.getElementById('active-signals').textContent = data.active_signals?.count || 0;
+            document.getElementById('new-listings').textContent = data.new_listings_24h?.count || 0;
+            document.getElementById('health-score').textContent = data.health_score || 0;
+
+            // Update Next Post Time
+            if (data.next_post_time) {
+                document.getElementById('next-post-time').textContent = formatFutureTime(data.next_post_time);
+            } else {
+                document.getElementById('next-post-time').textContent = '-';
+            }
+
+            // Update News Cache Status
+            if (data.news_cache_last_refresh) {
+                document.getElementById('news-cache-status').textContent = formatTime(data.news_cache_last_refresh);
+            } else {
+                document.getElementById('news-cache-status').textContent = '-';
+            }
+        }
+
+        function updateSignalPrice(tradeId, currentPrice, profitPct) {
+            const profitElement = document.querySelector(`[data-profit="${tradeId}"]`);
+            if (profitElement) {
+                profitElement.textContent = `${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%`;
+                profitElement.className = `pill ${profitPct >= 0 ? 'pill-success' : 'pill-danger'}`;
+            }
+        }
+
+        function updateListingPrice(symbol, exchange, currentPrice, movements) {
+            const listingElement = document.querySelector(`[data-listing="${symbol}-${exchange}"]`);
+            if (listingElement) {
+                // Update price and movement
+                const trailingDiv = listingElement.querySelector('.list-item-trailing');
+                if (trailingDiv && movements) {
+                    trailingDiv.innerHTML = `
+                        <div style="text-align: right;">
+                            <div style="font-size: var(--font-subheadline); font-weight: var(--weight-semibold);">
+                                $${currentPrice.toFixed(6)}
+                            </div>
+                            <div class="pill ${movements.total_pct >= 0 ? 'pill-success' : 'pill-danger'}" style="margin-top: 4px;">
+                                ${movements.total_pct >= 0 ? '+' : ''}${movements.total_pct.toFixed(2)}%
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // =============================================
+        // CLOSE TRADE FUNCTION
+        // =============================================
+        async function closeTrade(tradeId, currentPrice) {
+            if (!confirm("Close this trade manually?")) {
+                return;
+            }
+
+            try {
+                console.log(`🛑 Closing trade ${tradeId} at price ${currentPrice}`);
+                const response = await fetch(`${API_BASE}/api/trade/close`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Dashboard-Auth": AUTH_HEADER
+                    },
+                    body: JSON.stringify({
+                        trade_id: tradeId,
+                        close_reason: "manual",
+                        close_price: currentPrice
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("✅ Trade closed successfully:", data);
+                alert("Trade closed successfully!");
+
+                // Reload the signals page to reflect changes
+                loadSignalsPage();
+            } catch (error) {
+                console.error("❌ Error closing trade:", error);
+                alert(`Failed to close trade: ${error.message}`);
+            }
+        }
+
+        function prependNewListing(data) {
+            const listingsList = document.getElementById('listings-list');
+            if (listingsList && !listingsList.querySelector('.empty-state')) {
+                const newListingHTML = `
+                    <div class="list-item" data-listing="${data.symbol}-${data.exchange}" style="animation: slideIn 0.3s var(--ease-in-out);">
+                        <div class="list-item-icon" style="background: rgba(212, 175, 55, 0.15); color: var(--accent-gold);">
+                            🆕
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${data.symbol} <span class="pill pill-warning" style="margin-left: 8px;">NEW</span></div>
+                            <div class="list-item-subtitle">${data.exchange} · Just now</div>
+                        </div>
+                        <div class="list-item-trailing">
+                            <div style="text-align: right;">
+                                <div style="font-size: var(--font-subheadline); font-weight: var(--weight-semibold);">
+                                    $${data.first_price.toFixed(6)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                listingsList.insertAdjacentHTML('afterbegin', newListingHTML);
+            }
+        }
+        // =============================================
+        // DELETE TRADE FUNCTION
+        // =============================================
+        async function deleteTrade(tradeId) {
+            if (!confirm('Delete this trade? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                console.log(`🗑️ Deleting trade: ${tradeId}`);
+                const response = await fetch(`${API_BASE}/api/trades/${tradeId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Dashboard-Auth': AUTH_HEADER }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to delete trade: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`✅ Trade ${tradeId} deleted successfully`);
+                    alert('Trade deleted successfully');
+
+                    // Reload the signals page to reflect changes
+                    loadSignalsPage();
+                } else {
+                    throw new Error(data.error || 'Failed to delete trade');
+                }
+            } catch (error) {
+                console.error(`❌ Error deleting trade ${tradeId}:`, error);
+                alert(`Error deleting trade: ${error.message}`);
+            }
+        }
+
+
+
+        // ========================================
+        // MISSING FUNCTIONS - Added to fix ReferenceErrors
+        // ========================================
+
+        // Theme Management Functions
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeUI(newTheme);
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            if (icon && text) {
+                if (theme === 'dark') {
+                    icon.textContent = '🌙';
+                    text.textContent = 'Dark Mode';
+                } else {
+                    icon.textContent = '☀️';
+                    text.textContent = 'Light Mode';
+                }
+            }
+        }
+
+        // Collapsible Section Functions
+        function initCollapsibleSections() {
+            document.querySelectorAll('.collapsible-content').forEach(content => {
+                if (content.classList.contains('collapsed')) {
+                    const chevron = content.previousElementSibling?.querySelector('.collapsible-chevron');
+                    if (chevron) chevron.classList.remove('expanded');
+                }
+            });
+        }
+
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const chevron = document.getElementById(sectionId + '-chevron');
+            
+            if (content && chevron) {
+                content.classList.toggle('collapsed');
+                chevron.classList.toggle('expanded');
+            }
+        }
+
+        // Page Loading Functions
+        async function loadOverviewPage() {
+            console.log('📊 Loading Overview page...');
+            
+            // Fetch overview stats from API
+            const data = await fetchAPI('/api/overview/stats');
+            if (data && data.success) {
+                updateOverviewStats(data);
+            }
+            
+            // Fetch AI Market Summary
+            const summaryData = await fetchAPI('/api/overview/market-summary');
+            const summaryContainer = document.getElementById('market-summary-content');
+            if (summaryContainer) {
+                if (summaryData && summaryData.success) {
+                    summaryContainer.innerHTML = '<p class="card-text">' + summaryData.summary + '</p>';
+                } else {
+                    summaryContainer.innerHTML = '<p class="card-text" style="color: var(--text-tertiary);">Market summary temporarily unavailable</p>';
+                }
+            }
+            
+            // Fetch Top Performers
+            const performersData = await fetchAPI('/api/overview/top-performers');
+            const performersList = document.getElementById('top-performers-list');
+            if (performersList) {
+                if (performersData && performersData.success && performersData.trades) {
+                    if (performersData.trades.length === 0) {
+                        performersList.innerHTML = '<div class="empty-state">No top performers yet</div>';
+                    } else {
+                        performersList.innerHTML = performersData.trades.map(trade => {
+                            const isProfit = parseFloat(trade.highest_profit_pct) >= 0;
+                            const profitClass = isProfit ? 'profit-positive' : 'profit-negative';
+                            return '<div class="list-item">' +
+                                '<div class="list-item-icon ' + (trade.direction === 'LONG' ? 'long' : 'short') + '\">' + 
+                                (trade.direction === 'LONG' ? '📈' : '📉') + '</div>' +
+                                '<div class="list-item-content\">' +
+                                    '<div class="list-item-title\">' + trade.symbol + '/USDT ' + trade.direction + '</div>' +
+                                    '<div class="list-item-subtitle\">' + (trade.trader_name || 'Unknown') + ' · ' + 
+                                    trade.leverage + 'x</div>' +
+                                '</div>' +
+                                '<div class="list-item-trailing\">' +
+                                    '<span class="pill ' + profitClass + '\">' + 
+                                    (isProfit ? '+' : '') + trade.highest_profit_pct + '%</span>' +
+                                '</div>' +
+                            '</div>';
+                        }).join('');
+                    }
+                } else {
+                    performersList.innerHTML = '<div class="empty-state" style="color: var(--text-tertiary);">Top performers temporarily unavailable</div>';
+                }
+            }
+            
+            // Fetch Active Traders
+            const tradersData = await fetchAPI('/api/overview/active-traders');
+            const tradersList = document.getElementById('active-traders-list');
+            if (tradersList) {
+                if (tradersData && tradersData.success && tradersData.traders) {
+                    if (tradersData.traders.length === 0) {
+                        tradersList.innerHTML = '<div class="empty-state">No active traders</div>';
+                    } else {
+                        tradersList.innerHTML = tradersData.traders.map(trader => {
+                            return '<div class="list-item">' +
+                                '<div class="list-item-icon" style="background: rgba(102, 126, 234, 0.15); color: var(--primary);">👤</div>' +
+                                '<div class="list-item-content">' +
+                                    '<div class="list-item-title">' + trader.name + '</div>' +
+                                    '<div class="list-item-subtitle">' + trader.active_signals + ' active signal' + 
+                                    (trader.active_signals === 1 ? '' : 's') + '</div>' +
+                                '</div>' +
+                                '<div class="list-item-trailing">' +
+                                    '<span class="pill" style="background: rgba(102, 126, 234, 0.1); color: var(--primary);">' + 
+                                    trader.total_trades + ' total</span>' +
+                                '</div>' +
+                            '</div>';
+                        }).join('');
+                    }
+                } else {
+                    tradersList.innerHTML = '<div class="empty-state" style="color: var(--text-tertiary);">Active traders temporarily unavailable</div>';
+                }
+            }
+            
+            // Set up periodic updates
+            if (window.overviewInterval) clearInterval(window.overviewInterval);
+            window.overviewInterval = setInterval(async () => {
+                const data = await fetchAPI('/api/overview/stats');
+                if (data && data.success) {
+                    updateOverviewStats(data);
+                }
+            }, 30000); // Update every 30 seconds
+        }
+
+        function loadSignalsPage() {
+            console.log('📈 Loading Signals page...');
+            
+            const params = new URLSearchParams();
+            params.append('status', currentSignalsStatus || 'active');
+            
+            if (currentTrader && currentTrader !== 'all') {
+                params.append('trader', currentTrader);
+            }
+            
+            if (currentDaysFilter !== null) {
+                params.append('hours', currentDaysFilter);
+            }
+            
+            fetchAPI('/api/signals?' + params.toString())
+                .then(data => {
+                    if (!data || !data.signals) {
+                        console.error('❌ No signals data received');
+                        return;
+                    }
+                    
+                    const signals = data.signals;
+                    console.log('📊 Loaded ' + signals.length + ' signals');
+                    
+                    // Filter into pending and triggered
+                    const pendingSignals = signals.filter(s => !s.entry_triggered);
+                    const triggeredSignals = signals.filter(s => s.entry_triggered);
+                    
+                    console.log('Pending signals:', pendingSignals.length);
+                    console.log('Triggered signals:', triggeredSignals.length);
+                    
+                    // Render pending entry section (ONLY if viewing active/all trades, NOT closed)
+                    const pendingSection = document.getElementById('pending-entry-section');
+                    const pendingList = document.getElementById('pending-entry-list');
+                    
+                    // CRITICAL: Only show pending section when NOT viewing closed trades
+                    if (pendingSignals.length > 0 && currentSignalsStatus !== 'closed') {
+                        pendingSection.style.display = 'block';
+                        pendingList.innerHTML = pendingSignals.map(signal => {
+                            // Format data source badge with WebSocket status
+                            let dataSourceBadge = '';
+                            if (signal.data_source) {
+                                const wsStatus = signal.ws_status || 'unknown';
+                                const wsIndicator = wsStatus === 'live' ? '🟢' : (wsStatus === 'cached' ? '🟡' : '🔴');
+                                const wsLabel = wsStatus === 'live' ? 'Live' : (wsStatus === 'cached' ? 'Cached' : 'Offline');
+                                const sourceName = signal.data_source.replace('_websocket', '').replace('_perp', '').replace('_', ' ');
+                                dataSourceBadge = '<span class="data-source-badge" title="' + sourceName + ' (' + wsLabel + ')">' +
+                                    wsIndicator + ' ' + sourceName + '</span>';
+                            }
+
+                            return '<div class="list-item" data-trade-id="' + signal.id + '">' +
+                                '<div class="list-item-icon" style="background: rgba(255, 204, 0, 0.15); color: var(--warning);">⏳</div>' +
+                                '<div class="list-item-content">' +
+                                    '<div class="list-item-title">' + signal.coin + '/USDT ' + signal.direction + '</div>' +
+                                    '<div class="list-item-subtitle">' + (signal.trader_name || 'Unknown') + ' · ' + signal.leverage + 'x · Entry @ ' + signal.entry_price + ' ' + dataSourceBadge + '</div>' +
+                                '</div>' +
+                                '<div class="list-item-trailing">' +
+                                    '<span class="pill" style="background: rgba(255, 204, 0, 0.1); color: var(--warning);">Current: ' + (signal.current_price || 'N/A') + '</span>' +
+                                    '<button class="delete-trade-btn" onclick="deleteTrade(\'' + signal.id + '\')">🗑️</button>' +
+                                '</div>' +
+                            '</div>';
+                        }).join('');
+                    } else {
+                        pendingSection.style.display = 'none';
+                    }
+                    
+                    // Render triggered signals
+                    const signalsList = document.getElementById('signals-list');
+                    if (triggeredSignals.length === 0) {
+                        signalsList.innerHTML = '<div class="empty-state">No signals found</div>';
+                        return;
+                    }
+                    
+                    signalsList.innerHTML = triggeredSignals.map(signal => {
+                        const isProfit = parseFloat(signal.profit_pct) >= 0;
+                        const profitClass = isProfit ? 'profit-positive' : 'profit-negative';
+
+                        // Format data source badge with WebSocket status
+                        let dataSourceBadge = '';
+                        if (signal.data_source) {
+                            const wsStatus = signal.ws_status || 'unknown';
+                            const wsIndicator = wsStatus === 'live' ? '🟢' : (wsStatus === 'cached' ? '🟡' : '🔴');
+                            const wsLabel = wsStatus === 'live' ? 'Live' : (wsStatus === 'cached' ? 'Cached' : 'Offline');
+                            const sourceName = signal.data_source.replace('_websocket', '').replace('_perp', '').replace('_', ' ');
+                            dataSourceBadge = '<span class="data-source-badge" title="' + sourceName + ' (' + wsLabel + ')">' +
+                                wsIndicator + ' ' + sourceName + '</span>';
+                        }
+
+                        return '<div class="list-item" data-trade-id="' + signal.id + '">' +
+                            '<div class="list-item-icon ' + signal.direction.toLowerCase() + '">' + (signal.direction === 'LONG' ? '📈' : '📉') + '</div>' +
+                            '<div class="list-item-content">' +
+                                '<div class="list-item-title">' + signal.coin + '/USDT ' + signal.direction + '</div>' +
+                                '<div class="list-item-subtitle">' + (signal.trader_name || 'Unknown') + ' · ' + signal.leverage + 'x · Entry @ ' + signal.entry_price + ' ' + dataSourceBadge + '</div>' +
+                            '</div>' +
+                            '<div class="list-item-trailing">' +
+                                '<span class="pill ' + profitClass + '">' + (isProfit ? '+' : '') + signal.profit_pct + '%</span>' +
+                                (signal.status === 'active' ? '<button class="delete-trade-btn" onclick="closeTrade(\' + signal.id + \')">Close</button>' : '') +
+                            '</div>' +
+                        '</div>';
+                    }).join('');
+                })
+                .catch(error => {
+                    console.error('❌ Error loading signals:', error);
+                    const signalsList = document.getElementById('signals-list');
+                    if (signalsList) {
+                        signalsList.innerHTML = '<div class="empty-state">Error loading signals</div>';
+                    }
+                });
+        }
+
+        // Filter Functions
+        function filterTradesByStatus(status) {
+            console.log('🔍 Filtering trades by status: ' + status);
+            currentSignalsStatus = status;
+            
+            // Update button states
+            document.querySelectorAll('[data-status]').forEach(btn => {
+                btn.classList.remove('filter-button-active');
+                if (btn.dataset.status === status) {
+                    btn.classList.add('filter-button-active');
+                }
+            });
+            
+            loadSignalsPage();
+        }
+
+        function filterByTrader() {
+            const select = document.getElementById('trader-filter-select');
+            if (!select) return;
+            
+            currentTrader = select.value;
+            console.log('👤 Filtering trades by trader: ' + currentTrader);
+            loadSignalsPage();
+        }
+
+        // Utility Functions
+        function formatFutureTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = date - now;
+            
+            if (diffMs < 0) return 'Overdue';
+            
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 60) return 'in ' + diffMins + 'm';
+            if (diffHours < 24) return 'in ' + diffHours + 'h';
+            if (diffDays < 7) return 'in ' + diffDays + 'd';
+            return date.toLocaleDateString();
+        }
+
+        function updateSectionSummaries(data) {
+            // Update WebSocket summary
+            if (data && data.ws_connections) {
+                const summary = document.getElementById('websocket-summary');
+                if (summary) {
+                    const active = data.ws_connections.filter(c => c && c.status === 'active').length;
+                    summary.textContent = active + ' active';
+                }
+            }
+            
+            // Update RSS feed summary
+            if (data && data.rss_feeds) {
+                const summary = document.getElementById('rss-summary');
+                if (summary) {
+                    summary.textContent = `${data.rss_feeds.active || 0}/${data.rss_feeds.total || 0} active`;
+                }
+            }
+            
+            // Update News cache summary
+            if (data && data.news_cache) {
+                const summary = document.getElementById('news-summary');
+                if (summary) {
+                    summary.textContent = (data.news_cache.cached_articles || 0) + ' cached';
+                }
+            }
+            
+            // Update Sentinel assets summary
+            if (data && data.sentinel_assets) {
+                const summary = document.getElementById('sentinel-summary');
+                if (summary) {
+                    summary.textContent = data.sentinel_assets.length + ' assets';
+                }
+            }
+            
+            // Update Asset database summary
+            if (data && data.asset_database) {
+                const summary = document.getElementById('asset-summary');
+                if (summary) {
+                    summary.textContent = data.asset_database.length + ' assets';
+                }
+            }
+        }
+
+        // ========================================
+        // END OF MISSING FUNCTIONS
+        // ========================================
+
+
+
+        // ========================================
+        // NAVIGATION FUNCTIONS
+        // ========================================
+
+        // Track current page
+        let currentPage = 'overview';
+
+        // Navigation function to switch between pages
+        function showPage(pageName) {
+            console.log('📄 Switching to page: ' + pageName);
+            
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active state from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show the selected page
+            const targetPage = document.getElementById('page-' + pageName);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                currentPage = pageName;
+                
+                // Add active state to the clicked nav link
+                const activeLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+                
+                // Load page-specific data
+                switch (pageName) {
+                    case 'overview':
+                        loadOverviewPage();
+                        break;
+                    case 'signals':
+                        loadSignalsPage();
+                        break;
+                    case 'listings':
+                        loadListingsPage();
+                        break;
+                    case 'health':
+                        loadHealthPage();
+                        break;
+                }
+                
+                // Close mobile menu if open
+                closeMobileMenu();
+            } else {
+                console.error('❌ Page not found: page-' + pageName);
+            }
+        }
+
+        // Mobile menu functions
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('mobile-open');
+                overlay.classList.toggle('active');
+            }
+        }
+
+        function closeMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            }
+        }
+
+        // Initialize navigation event listeners
+        function initNavigation() {
+            console.log('🧭 Initializing navigation...');
+            
+            // Add click handlers to all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageName = this.getAttribute('data-page');
+                    if (pageName) {
+                        showPage(pageName);
+                    }
+                });
+            });
+            
+            // Mobile menu toggle
+            const mobileToggle = document.getElementById('mobileMenuToggle');
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', toggleMobileMenu);
+            }
+            
+            // Mobile overlay click to close
+            const overlay = document.getElementById('mobileOverlay');
+            if (overlay) {
+                overlay.addEventListener('click', closeMobileMenu);
+            }
+            
+            console.log('✅ Navigation initialized');
+        }
+
+        // =============================================
+        // INITIALIZATION
+        // =============================================
+        // Mobile Menu Toggle
+        function initMobileMenu() {
+            const menuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            function closeMobileMenu() {
+                menuToggle.classList.remove('active');
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+
+            function openMobileMenu() {
+                menuToggle.classList.add('active');
+                sidebar.classList.add('mobile-open');
+                overlay.style.display = 'block';
+                setTimeout(() => {
+                    overlay.classList.add('active');
+                }, 10);
+            }
+
+            menuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (sidebar.classList.contains('mobile-open')) {
+                    closeMobileMenu();
+                } else {
+                    openMobileMenu();
+                }
+            });
+
+            overlay.addEventListener('click', closeMobileMenu);
+
+            // Close menu when nav link clicked
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (window.innerWidth < 1024) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+
+            // Close menu on window resize to desktop
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 1024) {
+                    closeMobileMenu();
+                }
+            });
+        }
+
+        // ESC key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('listing-modal');
+                if (modal && modal.classList.contains('active')) {
+                    closeListingModal();
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Beta Dashboard Initializing...');
+            initTheme(); // Initialize theme from localStorage
+            initCollapsibleSections(); // Initialize collapsible sections
+            initNavigation(); // Initialize navigation event listeners
+            loadOverviewPage();
+            populateTraderDropdown(); // Load traders for filter dropdown
+        });
+    </script>
+
+    <!-- Trader Statistics Modal -->
+    <div class="modal-overlay" id="traderStatsModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTraderName">Trader Statistics</h2>
+                <button class="modal-close" onclick="closeTraderStatsModal()">✕</button>
+            </div>
+
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchModalTab('performance')">Performance</button>
+                <button class="modal-tab" onclick="switchModalTab('winloss')">Win/Loss</button>
+                <button class="modal-tab" onclick="switchModalTab('behavior')">Behavior</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-tab-content active" id="tab-performance">
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Take Profit Hit Rates</h3>
+                        <div id="tp-stats-content"></div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">DCA Trigger Rates</h3>
+                        <div id="dca-stats-content"></div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Stop Loss</h3>
+                        <div id="sl-stats-content"></div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="modal-tab-content" id="tab-winloss">
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Win Rate Analysis</h3>
+                        <div id="winrate-stats-content"></div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Profit Metrics</h3>
+                        <div id="profit-stats-content"></div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="winlossChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="modal-tab-content" id="tab-behavior">
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Trading Preferences</h3>
+                        <div id="prefs-stats-content"></div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Most Traded Coins</h3>
+                        <div id="coins-list-content"></div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h3 class="stats-section-title">Preferred Exchanges</h3>
+                        <div id="exchanges-list-content"></div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="behaviorChart"></canvas>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: var(--spacing-5);">
+                    <button class="export-btn" onclick="exportTraderStats()">
+                        📥 Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -7,21 +7,76 @@
 
 @layer base {
   :root {
+    /* Brand Colors */
+    --accent-gold: #D4AF37;
+    --accent-gold-vibrant: #E5C158;
     --gold: #D4AF37;
     --gold-hover: #b8941f;
     --gold-light: #E5C458;
     --gold-dark: #9F8429;
-  }
 
-  * {
-    @apply border-border;
+    /* iOS System Colors */
+    --ios-blue: #007AFF;
+    --ios-green: #34C759;
+    --ios-red: #FF3B30;
+    --ios-orange: #FF9500;
+    --ios-yellow: #FFCC00;
+
+    /* Dark Mode (Default) */
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+
+    /* Material Opacities */
+    --material-ultra-thin: rgba(28, 28, 30, 0.36);
+    --material-thin: rgba(28, 28, 30, 0.48);
+    --material-regular: rgba(28, 28, 30, 0.64);
+    --material-thick: rgba(28, 28, 30, 0.80);
+    --material-chrome: rgba(28, 28, 30, 0.92);
+
+    /* Spacing (8pt grid) */
+    --spacing-1: 4px;
+    --spacing-2: 8px;
+    --spacing-3: 12px;
+    --spacing-4: 16px;
+    --spacing-5: 20px;
+    --spacing-6: 24px;
+    --spacing-8: 32px;
+    --spacing-10: 40px;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    @apply bg-black;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Global text color fixes */
+  h1, h2, h3, h4, h5, h6 {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  p, span, div {
+    color: inherit;
+  }
+
+  /* Ensure all text elements are visible */
+  .text-white {
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  .text-gray-400 {
+    color: rgba(255, 255, 255, 0.70) !important;
+  }
+
+  .text-gray-500 {
+    color: rgba(255, 255, 255, 0.60) !important;
+  }
+
+  .text-gray-600 {
+    color: rgba(255, 255, 255, 0.55) !important;
   }
 
   /* iOS Style Scrollbar */
@@ -44,18 +99,32 @@
 }
 
 @layer components {
-  /* Glassmorphism Base */
+  /* Glassmorphism Base - Liquid Glass (iOS Style) */
   .glass {
-    @apply backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 dark:border-white/10;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    @apply bg-gray-900/40 border border-gray-800/30;
   }
 
   .glass-hover {
-    @apply hover:bg-white/80 dark:hover:bg-gray-900/80 transition-all duration-300;
+    @apply hover:bg-gray-900/60 transition-all duration-300 hover:transform hover:-translate-y-0.5;
   }
 
-  /* iOS Card */
+  .glass-strong {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    @apply bg-gray-900/70 border border-gray-800/50;
+  }
+
+  /* iOS Card - Dark Theme */
   .ios-card {
-    @apply glass rounded-ios shadow-ios dark:shadow-ios-dark;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    @apply bg-gray-900/40 border border-gray-800/30 rounded-[16px] shadow-lg;
+  }
+
+  .card-dark {
+    @apply bg-gray-900/80 border border-gray-800/50 rounded-[16px] shadow-lg;
   }
 
   /* iOS Button */
@@ -154,6 +223,65 @@
   /* Smooth Transitions */
   .transition-smooth {
     @apply transition-all duration-300 ease-[cubic-bezier(0.42,0,0.58,1)];
+  }
+
+  /* Mobile Bottom Tab Bar (iOS Style) */
+  .mobile-tab-bar {
+    @apply fixed bottom-0 left-0 right-0 z-50
+           backdrop-blur-ios bg-white/80 dark:bg-gray-900/80
+           border-t border-gray-200/50 dark:border-gray-800/50
+           safe-bottom;
+    height: calc(48px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-tab-button {
+    @apply flex flex-col items-center justify-center gap-1 flex-1
+           text-gray-600 dark:text-gray-400
+           transition-colors duration-200
+           active:scale-95 transform
+           min-h-touch;
+  }
+
+  .mobile-tab-button.active {
+    @apply text-gold;
+  }
+
+  /* Hide mobile tab bar on desktop */
+  @media (min-width: 1024px) {
+    .mobile-tab-bar {
+      @apply hidden;
+    }
+  }
+
+  /* Mobile-first container spacing */
+  .mobile-container {
+    @apply px-4 pb-20 lg:pb-6;
+  }
+
+  /* Collapsible section (iOS-style) */
+  .collapsible-header {
+    @apply flex items-center justify-between w-full p-4
+           glass rounded-ios mb-2
+           cursor-pointer hover:bg-white/90 dark:hover:bg-gray-800/90
+           transition-all duration-200 active:scale-[0.98];
+  }
+
+  /* Status indicator dots */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot-pulse {
+    @apply animate-pulse;
+  }
+
+  /* Spring animations */
+  .spring {
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .bounce {
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 }
 

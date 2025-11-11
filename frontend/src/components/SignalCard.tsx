@@ -29,7 +29,7 @@ interface SignalCardProps {
   onClick?: (signal: SignalData) => void;
 }
 
-export const SignalCard: React.FC<SignalCardProps> = ({
+const SignalCard: React.FC<SignalCardProps> = ({
   signal,
   isActive = false,
   onClick,
@@ -55,7 +55,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({
 
   const statusColors = {
     active: 'bg-ios-green/10 text-ios-green border-ios-green/20',
-    closed: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+    closed: 'bg-gray-800 text-gray-400',
     pending: 'bg-gold/10 text-gold border-gold/20',
   };
 
@@ -89,7 +89,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({
 
             <div className="text-left min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-headline text-gray-900 dark:text-gray-50">
+                <h3 className="text-headline font-semibold text-white">
                   {signal.symbol}
                 </h3>
                 <span className={clsx('badge-ios text-[10px]', phaseColors[signal.phase])}>
@@ -98,12 +98,12 @@ export const SignalCard: React.FC<SignalCardProps> = ({
               </div>
 
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-caption text-gray-500 dark:text-gray-400">
-                  {signal.webhook_source}
+                <span className="text-caption" style={{color: 'rgba(255, 255, 255, 0.70)'}}>
+                  {signal.webhook_source && signal.webhook_source !== 'Unknown' ? signal.webhook_source : 'TradingView'}
                 </span>
-                <span className="text-caption text-gray-400">•</span>
-                <span className="text-caption text-gray-500 dark:text-gray-400">
-                  ${signal.entry_price.toFixed(2)}
+                <span className="text-caption" style={{color: 'rgba(255, 255, 255, 0.60)'}}>•</span>
+                <span className="text-caption font-medium" style={{color: 'rgba(255, 255, 255, 0.85)'}}>
+                  ${signal.entry_price >= 1 ? signal.entry_price.toFixed(2) : signal.entry_price.toFixed(4)}
                 </span>
               </div>
             </div>
@@ -167,7 +167,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({
                     <Clock className="w-3.5 h-3.5" />
                     <span>Entry</span>
                   </div>
-                  <p className="text-body font-medium text-gray-900 dark:text-gray-50">
+                  <p className="text-body font-medium text-white">
                     ${signal.entry_price.toFixed(2)}
                   </p>
                 </div>
@@ -179,7 +179,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({
                       <Target className="w-3.5 h-3.5" />
                       <span>Take Profit</span>
                     </div>
-                    <p className="text-body font-medium text-gray-900 dark:text-gray-50">
+                    <p className="text-body font-medium text-white">
                       ${signal.tp_price.toFixed(2)}
                     </p>
                   </div>
@@ -192,7 +192,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({
                       <StopCircle className="w-3.5 h-3.5" />
                       <span>Stop Loss</span>
                     </div>
-                    <p className="text-body font-medium text-gray-900 dark:text-gray-50">
+                    <p className="text-body font-medium text-white">
                       ${signal.sl_price.toFixed(2)}
                     </p>
                   </div>
@@ -205,7 +205,7 @@ export const SignalCard: React.FC<SignalCardProps> = ({
                       <DollarSign className="w-3.5 h-3.5" />
                       <span>R/R Ratio</span>
                     </div>
-                    <p className="text-body font-medium text-gray-900 dark:text-gray-50">
+                    <p className="text-body font-medium text-white">
                       {signal.risk_reward.toFixed(2)}:1
                     </p>
                   </div>
@@ -225,3 +225,5 @@ export const SignalCard: React.FC<SignalCardProps> = ({
     </motion.div>
   );
 };
+
+export default React.memo(SignalCard);

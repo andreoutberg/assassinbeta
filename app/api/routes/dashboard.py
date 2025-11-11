@@ -71,7 +71,7 @@ class DashboardConnectionManager:
             logger.info(f"Dashboard WebSocket disconnected: {id(websocket)}")
 
     async def broadcast(self, message: Dict[str, Any]):
-        """Broadcast message to all connected clients"""
+        """Broadcast message to all connected clients using parallel sending."""
         if not self.active_connections:
             return
 
@@ -80,18 +80,31 @@ class DashboardConnectionManager:
             data=message
         ).model_dump_json()
 
-        # Send to all connections, remove dead ones
-        dead_connections = []
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message_json)
-            except Exception as e:
-                logger.warning(f"Failed to send to WebSocket: {e}")
-                dead_connections.append(connection)
+        # Send to all connections in parallel using asyncio.gather
+        # This prevents slow clients from blocking fast ones
+        send_tasks = [
+            self._send_to_connection(connection, message_json)
+            for connection in list(self.active_connections)
+        ]
 
-        # Clean up dead connections
-        for conn in dead_connections:
-            self.disconnect(conn)
+        # Execute all sends in parallel, ignore exceptions (handled in _send_to_connection)
+        if send_tasks:
+            await asyncio.gather(*send_tasks, return_exceptions=True)
+
+    async def _send_to_connection(self, connection: WebSocket, message_json: str):
+        """Send message to a single connection with timeout and error handling."""
+        try:
+            # Add timeout to prevent slow clients from blocking
+            await asyncio.wait_for(
+                connection.send_text(message_json),
+                timeout=5.0  # 5 second timeout per client
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout sending to WebSocket: {id(connection)}")
+            self.disconnect(connection)
+        except Exception as e:
+            logger.warning(f"Failed to send to WebSocket: {e}")
+            self.disconnect(connection)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         """Send message to specific client"""

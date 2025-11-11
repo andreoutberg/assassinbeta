@@ -14,7 +14,7 @@ interface StatCardProps {
   onClick?: () => void;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
+const StatCard: React.FC<StatCardProps> = ({
   value,
   label,
   trend,
@@ -42,81 +42,51 @@ export const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={onClick ? { scale: 0.98 } : undefined}
+      whileHover={{ scale: 1.01 }}
+      whileTap={onClick ? { scale: 0.99 } : undefined}
       className={clsx(
-        'card-ios p-5 md:p-6',
-        'flex flex-col items-start',
+        'card-dark p-4',
+        'flex flex-col',
         'group cursor-default',
         onClick && 'cursor-pointer',
         className
       )}
       onClick={onClick}
     >
-      {/* Icon and trend */}
-      <div className="w-full flex items-start justify-between mb-3">
+      {/* Icon */}
+      <div className="flex items-center gap-2 mb-3">
         {Icon && (
-          <div className={clsx(
-            'p-2 rounded-ios',
-            'bg-gray-100 dark:bg-gray-800',
-            'group-hover:bg-gray-200 dark:group-hover:bg-gray-700',
-            'transition-colors duration-200'
-          )}>
-            <Icon className={clsx('w-5 h-5', colorClasses[color])} />
-          </div>
+          <Icon className={clsx('w-5 h-5', colorClasses[color])} />
         )}
-
-        {trend && (
+        {trend && trendValue && (
           <div className={clsx(
-            'flex items-center gap-1',
-            trend === 'up' && 'text-success',
-            trend === 'down' && 'text-danger',
+            'flex items-center gap-1 ml-auto',
+            trend === 'up' && 'text-ios-green',
+            trend === 'down' && 'text-ios-red',
             trend === 'neutral' && 'text-gray-500'
           )}>
-            {TrendIcon && <TrendIcon className="w-4 h-4" />}
-            {trendValue && (
-              <span className="text-caption font-medium">
-                {trendValue}
-              </span>
-            )}
+            {TrendIcon && <TrendIcon className="w-3.5 h-3.5" />}
+            <span className="text-[11px] font-medium">{trendValue}</span>
           </div>
         )}
       </div>
 
       {/* Value */}
-      <div className="space-y-1">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className={clsx(
-            'text-largeTitle font-bold text-sf',
-            'text-gray-900 dark:text-gray-50'
-          )}
-        >
-          {value}
-        </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="text-[28px] font-bold text-white leading-tight mb-1"
+      >
+        {value}
+      </motion.div>
 
-        {/* Label */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="text-caption text-gray-500 dark:text-gray-400"
-        >
-          {label}
-        </motion.div>
+      {/* Label */}
+      <div className="text-[13px] text-gray-400">
+        {label}
       </div>
-
-      {/* Hover indicator */}
-      {onClick && (
-        <motion.div
-          initial={{ width: 0 }}
-          whileHover={{ width: '100%' }}
-          className="absolute bottom-0 left-0 h-0.5 bg-gold"
-          transition={{ duration: 0.2 }}
-        />
-      )}
     </motion.div>
   );
 };
+
+export default React.memo(StatCard);

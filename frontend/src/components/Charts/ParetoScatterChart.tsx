@@ -87,7 +87,7 @@ export const ParetoScatterChart: React.FC<ParetoScatterChartProps> = ({
     return null;
   };
 
-  const CustomLegend = (props: any) => {
+  const CustomLegend = () => {
     return (
       <div className="flex items-center justify-center gap-4 mt-4">
         {Object.entries(phaseColors).map(([phase, color]) => (

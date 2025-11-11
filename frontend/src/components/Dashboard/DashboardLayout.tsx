@@ -10,7 +10,6 @@ import {
   IconButton,
   Heading,
   Badge,
-  useColorModeValue,
   Drawer,
   DrawerContent,
   DrawerOverlay,
@@ -23,6 +22,7 @@ import {
   FiTrendingUp,
   FiLayers,
   FiBarChart2,
+  FiActivity,
   FiMenu,
   FiX,
 } from 'react-icons/fi'
@@ -35,10 +35,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { name: 'Home', icon: FiHome, path: '/' },
-  { name: 'Signals', icon: FiTrendingUp, path: '/signals' },
-  { name: 'Strategies', icon: FiLayers, path: '/strategies' },
-  { name: 'Performance', icon: FiBarChart2, path: '/performance' },
+  { name: 'Home', icon: FiHome, path: '/dashboard' },
+  { name: 'Signals', icon: FiTrendingUp, path: '/dashboard/signals' },
+  { name: 'Strategies', icon: FiLayers, path: '/dashboard/strategies' },
+  { name: 'Performance', icon: FiBarChart2, path: '/dashboard/performance' },
+  { name: 'System', icon: FiActivity, path: '/dashboard/system' },
 ]
 
 const DashboardLayout: React.FC = () => {
@@ -46,10 +47,10 @@ const DashboardLayout: React.FC = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { wsConnected } = useDashboardStore()
 
-  const bgColor = useColorModeValue('gray.50', 'gray.900')
-  const sidebarBg = useColorModeValue('white', 'gray.800')
-  const borderColor = useColorModeValue('gray.200', 'gray.700')
-  const activeColor = useColorModeValue('blue.500', 'blue.300')
+  // Force dark theme colors
+  const bgColor = 'black'
+  const sidebarBg = 'gray.900'
+  const borderColor = 'gray.800'
 
   const SidebarContent = () => (
     <VStack
@@ -63,7 +64,7 @@ const DashboardLayout: React.FC = () => {
       borderColor={borderColor}
     >
       <Flex align="center" justify="space-between" mb={6}>
-        <Heading size="lg">Andre Assassin</Heading>
+        <Heading size="lg" color="rgba(255, 255, 255, 0.95)">Andre Assassin</Heading>
         {isOpen && (
           <IconButton
             aria-label="Close menu"
@@ -86,7 +87,9 @@ const DashboardLayout: React.FC = () => {
               to={item.path}
               leftIcon={<Icon as={item.icon} />}
               variant={isActive ? 'solid' : 'ghost'}
-              colorScheme={isActive ? 'blue' : 'gray'}
+              bg={isActive ? '#D4AF37' : 'transparent'}
+              color={isActive ? '#000' : 'rgba(255, 255, 255, 0.85)'}
+              _hover={{ bg: isActive ? '#b8941f' : 'rgba(255, 255, 255, 0.1)' }}
               justifyContent="flex-start"
               w="full"
               onClick={onClose}
@@ -105,7 +108,7 @@ const DashboardLayout: React.FC = () => {
             borderRadius="full"
             bg={wsConnected ? 'green.400' : 'red.400'}
           />
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color="rgba(255, 255, 255, 0.70)">
             WebSocket: {wsConnected ? 'Connected' : 'Disconnected'}
           </Text>
         </HStack>
@@ -152,7 +155,7 @@ const DashboardLayout: React.FC = () => {
             onClick={onOpen}
             variant="ghost"
           />
-          <Heading size="md">Andre Assassin</Heading>
+          <Heading size="md" color="rgba(255, 255, 255, 0.95)">Andre Assassin</Heading>
           <Badge colorScheme={wsConnected ? 'green' : 'red'}>
             {wsConnected ? 'Online' : 'Offline'}
           </Badge>

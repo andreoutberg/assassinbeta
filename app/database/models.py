@@ -4,7 +4,7 @@ Database Models for Andre Assassin
 Statistical trade tracking system with per-asset learning.
 TP levels are LEARNED from historical data, not hardcoded.
 """
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, Text, JSON, ForeignKey
+from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, Text, JSON, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
@@ -61,6 +61,12 @@ class TradeSetup(Base):
     Records what actually happens (TP hits, drawdowns, timing).
     """
     __tablename__ = "trade_setups"
+    __table_args__ = (
+        # Composite indexes for common query patterns (performance optimization)
+        Index('idx_symbol_status_source', 'symbol', 'status', 'webhook_source'),
+        Index('idx_status_timestamp', 'status', 'entry_timestamp'),
+        Index('idx_symbol_direction_source', 'symbol', 'direction', 'webhook_source'),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     trade_identifier = Column(String(50), unique=True, nullable=True, index=True)  # e.g., "#AIALONG_A_001"
@@ -213,6 +219,10 @@ class TradePriceSample(Base):
     Allows us to answer: "What percentage of BTCUSDT trades reached 1.5%?"
     """
     __tablename__ = "trade_price_samples"
+    __table_args__ = (
+        # Composite index for efficient latest price sample queries (fixes N+1 query pattern)
+        Index('idx_trade_timestamp', 'trade_setup_id', 'timestamp'),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     trade_setup_id = Column(Integer, nullable=False, index=True)

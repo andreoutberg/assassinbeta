@@ -1,38 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Brain, TrendingUp, Shield, Zap, BarChart3, Target } from 'lucide-react';
 import StrategyCard from '../components/StrategyCard';
-import CollapsibleSection from '../components/CollapsibleSection';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 import clsx from 'clsx';
 
 interface Strategy {
   id: string;
-  name: string;
-  description: string;
-  type: 'momentum' | 'meanReversion' | 'trend' | 'breakout' | 'scalping';
-  isActive: boolean;
-  performance: {
-    winRate: number;
-    profitFactor: number;
-    sharpeRatio: number;
-    totalTrades: number;
-    profitableTrades: number;
-    averageWin: number;
-    averageLoss: number;
-    maxDrawdown: number;
-  };
-  parameters?: {
-    timeframe: string;
-    riskPercent: number;
-    stopLoss: number;
-    takeProfit: number;
-  };
-  lastSignal?: {
-    timestamp: Date;
-    type: 'BUY' | 'SELL';
-    symbol: string;
-    price: number;
-  };
+  webhook_source: string;
+  phase: 'I' | 'II' | 'III';
+  win_rate: number;
+  risk_reward: number;
+  expected_value: number;
+  total_trades: number;
+  profitable_trades: number;
+  tp_percentage?: number;
+  sl_percentage?: number;
+  confidence: number;
+  optimization_url?: string;
+  last_updated: Date | string;
+  status: 'active' | 'optimizing' | 'paused';
+  performance_trend?: number[];
+  avg_trade_duration?: string;
+  type?: 'momentum' | 'meanReversion' | 'trend' | 'breakout' | 'scalping';
 }
 
 const Strategies: React.FC = () => {
@@ -41,124 +31,42 @@ const Strategies: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
-  // Mock data
+  // Fetch real strategies from API
   useEffect(() => {
-    const mockStrategies: Strategy[] = [
-      {
-        id: '1',
-        name: 'Ichimoku Cloud Master',
-        description: 'Advanced Ichimoku cloud strategy with multi-timeframe analysis',
-        type: 'trend',
-        isActive: true,
-        performance: {
-          winRate: 0.68,
-          profitFactor: 2.4,
-          sharpeRatio: 1.8,
-          totalTrades: 156,
-          profitableTrades: 106,
-          averageWin: 850,
-          averageLoss: 320,
-          maxDrawdown: 0.12,
-        },
-        parameters: {
-          timeframe: '4H',
-          riskPercent: 2,
-          stopLoss: 3,
-          takeProfit: 6,
-        },
-        lastSignal: {
-          timestamp: new Date(),
-          type: 'BUY',
-          symbol: 'BTC/USD',
-          price: 95000,
-        },
-      },
-      {
-        id: '2',
-        name: 'Wyckoff Accumulation',
-        description: 'Identifies accumulation phases using Wyckoff methodology',
-        type: 'breakout',
-        isActive: true,
-        performance: {
-          winRate: 0.72,
-          profitFactor: 2.8,
-          sharpeRatio: 2.1,
-          totalTrades: 89,
-          profitableTrades: 64,
-          averageWin: 1200,
-          averageLoss: 400,
-          maxDrawdown: 0.09,
-        },
-        parameters: {
-          timeframe: '1D',
-          riskPercent: 1.5,
-          stopLoss: 4,
-          takeProfit: 8,
-        },
-        lastSignal: {
-          timestamp: new Date(Date.now() - 3600000),
-          type: 'SELL',
-          symbol: 'ETH/USD',
-          price: 3200,
-        },
-      },
-      {
-        id: '3',
-        name: 'Smart Money Flow',
-        description: 'Tracks institutional money flow patterns',
-        type: 'momentum',
-        isActive: false,
-        performance: {
-          winRate: 0.65,
-          profitFactor: 2.1,
-          sharpeRatio: 1.6,
-          totalTrades: 234,
-          profitableTrades: 152,
-          averageWin: 650,
-          averageLoss: 280,
-          maxDrawdown: 0.15,
-        },
-        parameters: {
-          timeframe: '1H',
-          riskPercent: 2.5,
-          stopLoss: 2,
-          takeProfit: 4,
-        },
-      },
-      {
-        id: '4',
-        name: 'Scalping Pro',
-        description: 'High-frequency scalping with tight risk management',
-        type: 'scalping',
-        isActive: true,
-        performance: {
-          winRate: 0.58,
-          profitFactor: 1.6,
-          sharpeRatio: 1.2,
-          totalTrades: 512,
-          profitableTrades: 297,
-          averageWin: 120,
-          averageLoss: 80,
-          maxDrawdown: 0.08,
-        },
-        parameters: {
-          timeframe: '5M',
-          riskPercent: 1,
-          stopLoss: 0.5,
-          takeProfit: 1,
-        },
-      },
-    ];
-    setStrategies(mockStrategies);
-    setLoading(false);
+    const fetchStrategies = async () => {
+      try {
+        const baseUrl = `${window.location.protocol}//${window.location.hostname}`;
+        const response = await fetch(`${baseUrl}/api/strategies`, {
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Strategies data:', data);
+          setStrategies(Array.isArray(data) ? data : []);
+        } else {
+          console.error('Failed to fetch strategies:', response.status);
+          setStrategies([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch strategies:', error);
+        setStrategies([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStrategies();
   }, []);
 
-  const getFilteredStrategies = () => {
+  const filteredStrategies = useMemo(() => {
     let filtered = [...strategies];
 
     if (activeFilter !== 'all') {
       filtered = filtered.filter(s =>
-        activeFilter === 'active' ? s.isActive : !s.isActive
+        activeFilter === 'active' ? s.status === 'active' : s.status !== 'active'
       );
     }
 
@@ -167,22 +75,20 @@ const Strategies: React.FC = () => {
     }
 
     return filtered;
-  };
-
-  const filteredStrategies = getFilteredStrategies();
+  }, [strategies, activeFilter, typeFilter]);
 
   const getOverallStats = () => {
-    const activeStrategies = strategies.filter(s => s.isActive);
-    const totalTrades = strategies.reduce((acc, s) => acc + s.performance.totalTrades, 0);
-    const avgWinRate = strategies.reduce((acc, s) => acc + s.performance.winRate, 0) / strategies.length;
-    const avgSharpe = strategies.reduce((acc, s) => acc + s.performance.sharpeRatio, 0) / strategies.length;
+    const activeStrategies = strategies.filter(s => s.status === 'active');
+    const totalTrades = strategies.reduce((acc, s) => acc + s.total_trades, 0);
+    const avgWinRate = strategies.reduce((acc, s) => acc + s.win_rate, 0) / strategies.length;
+    const avgRR = strategies.reduce((acc, s) => acc + s.risk_reward, 0) / strategies.length;
 
     return {
       total: strategies.length,
       active: activeStrategies.length,
       totalTrades,
-      avgWinRate: (avgWinRate * 100).toFixed(1),
-      avgSharpe: avgSharpe.toFixed(2),
+      avgWinRate: avgWinRate.toFixed(1),
+      avgRR: avgRR.toFixed(2),
     };
   };
 
@@ -243,15 +149,15 @@ const Strategies: React.FC = () => {
           <p className="text-title2 font-bold text-gold mt-1">{stats.avgWinRate}%</p>
         </div>
         <div className="ios-card p-4">
-          <p className="text-caption text-gray-500 dark:text-gray-400">Avg Sharpe</p>
-          <p className="text-title2 font-bold mt-1">{stats.avgSharpe}</p>
+          <p className="text-caption text-gray-500 dark:text-gray-400">Avg R/R</p>
+          <p className="text-title2 font-bold mt-1">{stats.avgRR}</p>
         </div>
       </div>
 
       {/* Filters */}
       <CollapsibleSection
         title="Filters & Sorting"
-        icon={<BarChart3 className="w-5 h-5" />}
+        icon={BarChart3}
         defaultOpen={false}
       >
         <div className="space-y-4">
@@ -268,8 +174,8 @@ const Strategies: React.FC = () => {
                   className={clsx(
                     'px-4 py-2 rounded-ios text-body capitalize transition-all',
                     activeFilter === status
-                      ? 'bg-gold text-gray-900'
-                      : 'glass hover:bg-white/90 dark:hover:bg-gray-800/90'
+                      ? 'bg-gold text-black font-semibold'
+                      : 'glass text-white hover:bg-gray-800/30'
                   )}
                 >
                   {status}
@@ -293,8 +199,8 @@ const Strategies: React.FC = () => {
                     className={clsx(
                       'px-3 py-2 rounded-ios text-body flex items-center gap-2 transition-all',
                       typeFilter === type.value
-                        ? 'bg-gold text-gray-900'
-                        : 'glass hover:bg-white/90 dark:hover:bg-gray-800/90'
+                        ? 'bg-gold text-black font-semibold'
+                        : 'glass text-white hover:bg-gray-800/30'
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -319,13 +225,6 @@ const Strategies: React.FC = () => {
             >
               <StrategyCard
                 strategy={strategy}
-                onToggle={() => {
-                  const updated = strategies.map(s =>
-                    s.id === strategy.id ? { ...s, isActive: !s.isActive } : s
-                  );
-                  setStrategies(updated);
-                }}
-                onEdit={() => console.log('Edit strategy', strategy.id)}
                 onViewDetails={() => console.log('View details', strategy.id)}
               />
             </motion.div>

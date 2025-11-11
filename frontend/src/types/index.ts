@@ -75,9 +75,11 @@ export interface StatsBySource {
 }
 
 export interface WebSocketMessage {
-  type: 'signal' | 'strategy' | 'optimization' | 'alert'
-  action: 'created' | 'updated' | 'deleted'
+  type: 'signal' | 'strategy' | 'optimization' | 'alert' | 'heartbeat' | 'pong' | 'connection' | 'subscribed' | 'unsubscribed' | 'stats'
+  action?: 'created' | 'updated' | 'deleted'
   data: any
+  message_id?: string
+  require_ack?: boolean
 }
 
 export interface OptunaTrial {

@@ -16,7 +16,9 @@ export function useWebSocket() {
 
     // Set up message handler
     const handleMessage: WebSocketCallback = (message) => {
-      console.log('WebSocket message received:', message)
+      if (import.meta.env.DEV) {
+        console.log('WebSocket message received:', message)
+      }
 
       // Invalidate relevant queries based on message type
       switch (message.type) {
@@ -35,6 +37,12 @@ export function useWebSocket() {
           }
           break
 
+        case 'stats':
+          // Only invalidate stats on 'stats' message type
+          queryClient.invalidateQueries({ queryKey: ['stats'] })
+          queryClient.invalidateQueries({ queryKey: ['stats-by-source'] })
+          break
+
         case 'optimization':
           queryClient.invalidateQueries({ queryKey: ['strategies'] })
           queryClient.invalidateQueries({ queryKey: ['stats'] })
@@ -42,13 +50,11 @@ export function useWebSocket() {
 
         case 'alert':
           // Could show toast notification here
-          console.log('Alert received:', message.data)
+          if (import.meta.env.DEV) {
+            console.log('Alert received:', message.data)
+          }
           break
       }
-
-      // Always refresh stats
-      queryClient.invalidateQueries({ queryKey: ['stats'] })
-      queryClient.invalidateQueries({ queryKey: ['stats-by-source'] })
     }
 
     // Subscribe to messages
@@ -59,11 +65,17 @@ export function useWebSocket() {
       setWsConnected(wsClient.isConnected)
     }, 5000)
 
-    // Cleanup on unmount
+    // Handle disconnect on page unload
+    const handleBeforeUnload = () => {
+      wsClient.disconnect()
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    // Cleanup on unmount - only unsubscribe, don't disconnect
     return () => {
       unsubscribe()
       clearInterval(checkConnectionInterval)
-      wsClient.disconnect()
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [queryClient, setWsConnected])
 

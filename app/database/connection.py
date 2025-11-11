@@ -7,6 +7,7 @@ import asyncpg
 from asyncpg.pool import Pool
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import text
 from contextlib import asynccontextmanager
 import redis.asyncio as redis
 from app.config.settings import settings
@@ -130,7 +131,7 @@ async def check_database_health() -> bool:
     """Check if database is healthy"""
     try:
         async with AsyncSessionLocal() as session:
-            result = await session.execute("SELECT 1")
+            result = await session.execute(text("SELECT 1"))
             return result.scalar() == 1
     except Exception:
         return False
@@ -213,7 +214,7 @@ class DatabaseManager:
         """Test all database connections"""
         # Test SQLAlchemy
         async with self.session_factory() as session:
-            result = await session.execute("SELECT 1")
+            result = await session.execute(text("SELECT 1"))
             assert result.scalar() == 1
 
         # Test asyncpg
@@ -277,7 +278,7 @@ class DatabaseManager:
 
         try:
             async with self.session_factory() as session:
-                result = await session.execute("SELECT 1")
+                result = await session.execute(text("SELECT 1"))
                 status["postgresql"] = "healthy" if result.scalar() == 1 else "unhealthy"
         except Exception as e:
             status["postgresql"] = f"error: {str(e)}"

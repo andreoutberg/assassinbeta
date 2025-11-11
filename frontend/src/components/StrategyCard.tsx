@@ -28,7 +28,7 @@ interface StrategyCardProps {
   className?: string;
 }
 
-export const StrategyCard: React.FC<StrategyCardProps> = ({
+const StrategyCard: React.FC<StrategyCardProps> = ({
   strategy,
   onViewDetails,
   className,
@@ -294,3 +294,5 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     </motion.div>
   );
 };
+
+export default React.memo(StrategyCard);

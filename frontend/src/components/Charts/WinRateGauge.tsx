@@ -38,7 +38,6 @@ export const WinRateGauge: React.FC<WinRateGaugeProps> = ({
 
   const currentSize = sizes[size];
   const radius = (currentSize.width - currentSize.strokeWidth) / 2;
-  const circumference = Math.PI * radius;
 
   return (
     <div className={clsx('flex flex-col items-center', className)}>

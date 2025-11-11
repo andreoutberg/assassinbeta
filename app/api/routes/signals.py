@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
 
 from app.database.connection import get_db
+from app.api.deps import rate_limit_standard, rate_limit_low
 from app.api.schemas.signals import (
     SignalResponse,
     SignalGenerateRequest,
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/live", response_model=List[SignalResponse])
+@router.get("/live", response_model=List[SignalResponse], dependencies=[Depends(rate_limit_standard)])
 async def get_live_signals(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -92,7 +93,7 @@ async def get_live_signals(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/generate", response_model=SignalResponse)
+@router.post("/generate", response_model=SignalResponse, dependencies=[Depends(rate_limit_low)])
 async def generate_signal(
     request: Request,
     signal_request: SignalGenerateRequest,
@@ -158,12 +159,12 @@ async def generate_signal(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error generating signal: {e}")
+        logger.error(f"Error generating signal: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/quality", response_model=SignalQualityResponse)
+@router.get("/quality", response_model=SignalQualityResponse, dependencies=[Depends(rate_limit_standard)])
 async def get_signal_quality_metrics(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -243,7 +244,7 @@ async def get_signal_quality_metrics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{signal_id}", response_model=SignalResponse)
+@router.get("/{signal_id}", response_model=SignalResponse, dependencies=[Depends(rate_limit_standard)])
 async def get_signal_details(
     signal_id: str,
     db: AsyncSession = Depends(get_db)
@@ -283,7 +284,7 @@ async def get_signal_details(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{signal_id}/execute", response_model=dict)
+@router.post("/{signal_id}/execute", response_model=dict, dependencies=[Depends(rate_limit_low)])
 async def execute_signal(
     request: Request,
     signal_id: str,

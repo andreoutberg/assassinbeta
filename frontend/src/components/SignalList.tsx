@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SignalCard } from './SignalCard';
+import SignalCard from './SignalCard';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TrendingUp } from 'lucide-react';
@@ -44,7 +44,6 @@ export const SignalList: React.FC<SignalListProps> = ({
   onSignalClick,
   emptyMessage = 'No signals found',
   className,
-  variant = 'default',
 }) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);

@@ -1,138 +1,126 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Filter, TrendingUp, AlertCircle, Clock } from 'lucide-react';
-import FilterBar from '../components/FilterBar';
+import { Activity, TrendingUp, AlertCircle, Clock, Filter } from 'lucide-react';
 import SignalCard from '../components/SignalCard';
-import CollapsibleSection from '../components/CollapsibleSection';
-import PhaseIndicator from '../components/PhaseIndicator';
-import clsx from 'clsx';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 
 interface Signal {
   id: string;
-  timestamp: Date;
   symbol: string;
-  source: string;
-  signal_type: 'BUY' | 'SELL' | 'HOLD';
-  strength: number;
-  price: number;
-  target: number;
-  stop_loss: number;
-  confidence: number;
-  metadata?: {
-    volume?: number;
-    rsi?: number;
-    phase?: string;
-  };
+  direction: 'LONG' | 'SHORT';
+  entry_price: number;
+  current_price?: number;
+  tp_price?: number;
+  sl_price?: number;
+  pnl?: number;
+  pnl_percentage?: number;
+  phase: 'I' | 'II' | 'III';
+  webhook_source: string;
+  timestamp: Date | string;
+  status: 'active' | 'closed' | 'pending';
+  volume?: number;
+  confidence?: number;
+  risk_reward?: number;
 }
 
 const Signals: React.FC = () => {
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [filteredSignals, setFilteredSignals] = useState<Signal[]>([]);
   const [selectedSource, setSelectedSource] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStrength, setSelectedStrength] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
-  // Mock data for demonstration
+  // Fetch real signals from API
   useEffect(() => {
-    const mockSignals: Signal[] = [
-      {
-        id: '1',
-        timestamp: new Date(),
-        symbol: 'BTC/USD',
-        source: 'Ichimoku',
-        signal_type: 'BUY',
-        strength: 0.85,
-        price: 95000,
-        target: 98000,
-        stop_loss: 93000,
-        confidence: 0.82,
-        metadata: {
-          volume: 1250000,
-          rsi: 55,
-          phase: 'markup',
-        },
-      },
-      {
-        id: '2',
-        timestamp: new Date(Date.now() - 3600000),
-        symbol: 'ETH/USD',
-        source: 'Wyckoff',
-        signal_type: 'SELL',
-        strength: 0.72,
-        price: 3200,
-        target: 3000,
-        stop_loss: 3300,
-        confidence: 0.75,
-        metadata: {
-          volume: 850000,
-          rsi: 68,
-          phase: 'distribution',
-        },
-      },
-      {
-        id: '3',
-        timestamp: new Date(Date.now() - 7200000),
-        symbol: 'SOL/USD',
-        source: 'SmartMoney',
-        signal_type: 'BUY',
-        strength: 0.91,
-        price: 145,
-        target: 160,
-        stop_loss: 140,
-        confidence: 0.88,
-        metadata: {
-          volume: 450000,
-          rsi: 42,
-          phase: 'accumulation',
-        },
-      },
-    ];
-    setSignals(mockSignals);
-    setFilteredSignals(mockSignals);
-    setLoading(false);
+    const fetchSignals = async () => {
+      try {
+        const baseUrl = `${window.location.protocol}//${window.location.hostname}`;
+        const response = await fetch(`${baseUrl}/api/trades/active`);
+
+        if (response.ok) {
+          const data = await response.json();
+          const trades = data.trades || [];
+
+          // Map backend trades to Signal format
+          const mappedSignals: Signal[] = trades.map((trade: any) => ({
+            id: trade.id?.toString() || '',
+            symbol: trade.symbol || '',
+            direction: trade.direction || 'LONG',
+            entry_price: trade.entry_price || 0,
+            current_price: trade.current_price,
+            tp_price: trade.take_profit_price,
+            sl_price: trade.stop_loss_price,
+            pnl: trade.current_pnl,
+            pnl_percentage: trade.current_pnl_pct,
+            phase: trade.phase || 'I',
+            webhook_source: trade.webhook_source || 'Unknown',
+            timestamp: trade.entry_timestamp || new Date(),
+            status: 'active',
+            confidence: 75,
+            risk_reward: trade.risk_reward || 0,
+          }));
+
+          setSignals(mappedSignals);
+        }
+      } catch (error) {
+        console.error('Failed to fetch signals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSignals();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchSignals, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Filter signals
-  useEffect(() => {
+  // Filter signals with useMemo
+  const filteredSignals = useMemo(() => {
     let filtered = [...signals];
 
     if (selectedSource !== 'all') {
-      filtered = filtered.filter(s => s.source === selectedSource);
+      filtered = filtered.filter(s => s.webhook_source === selectedSource);
     }
 
     if (selectedType !== 'all') {
-      filtered = filtered.filter(s => s.signal_type === selectedType);
+      filtered = filtered.filter(s => s.direction === selectedType);
     }
 
     if (selectedStrength !== 'all') {
       const threshold = parseFloat(selectedStrength);
-      filtered = filtered.filter(s => s.strength >= threshold);
+      filtered = filtered.filter(s => (s.confidence || 0) >= threshold);
     }
 
-    setFilteredSignals(filtered);
+    return filtered;
   }, [selectedSource, selectedType, selectedStrength, signals]);
 
-  const sources = ['all', 'Ichimoku', 'Wyckoff', 'SmartMoney'];
-  const types = ['all', 'BUY', 'SELL', 'HOLD'];
+  // Get unique sources from signals
+  const sources = useMemo(() => {
+    const uniqueSources = Array.from(new Set(signals.map(s => s.webhook_source)));
+    return ['all', ...uniqueSources];
+  }, [signals]);
+
+  const types = ['all', 'LONG', 'SHORT'];
   const strengths = [
-    { value: 'all', label: 'All Strengths' },
-    { value: '0.5', label: '≥ 50%' },
-    { value: '0.7', label: '≥ 70%' },
-    { value: '0.85', label: '≥ 85%' },
+    { value: 'all', label: 'All Confidence' },
+    { value: '50', label: '≥ 50%' },
+    { value: '70', label: '≥ 70%' },
+    { value: '85', label: '≥ 85%' },
   ];
 
   const getSignalStats = () => {
     const totalSignals = filteredSignals.length;
-    const buySignals = filteredSignals.filter(s => s.signal_type === 'BUY').length;
-    const sellSignals = filteredSignals.filter(s => s.signal_type === 'SELL').length;
-    const avgStrength = filteredSignals.reduce((acc, s) => acc + s.strength, 0) / totalSignals || 0;
+    const buySignals = filteredSignals.filter(s => s.direction === 'LONG').length;
+    const sellSignals = filteredSignals.filter(s => s.direction === 'SHORT').length;
+    const avgStrength = filteredSignals.reduce((acc, s) => acc + (s.confidence || 0), 0) / totalSignals || 0;
 
     return {
       total: totalSignals,
       buy: buySignals,
       sell: sellSignals,
-      avgStrength: (avgStrength * 100).toFixed(1),
+      avgStrength: avgStrength.toFixed(1),
     };
   };
 
@@ -153,148 +141,96 @@ const Signals: React.FC = () => {
       className="space-y-6"
     >
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-largeTitle font-bold gold-gradient-text">Trading Signals</h1>
-          <p className="text-body text-gray-600 dark:text-gray-400 mt-1">
-            Real-time signals from multiple strategies
-          </p>
-        </div>
-        <PhaseIndicator phase="analyzing" confidence={0.85} size="lg" />
+      <div>
+        <h1 className="text-[28px] font-semibold text-white mb-1">Trading Signals</h1>
+        <p className="text-[15px] text-gray-400">Real-time trading signals from all sources</p>
       </div>
 
-      {/* Stats Overview */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="ios-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-caption text-gray-500 dark:text-gray-400">Total Signals</p>
-              <p className="text-title2 font-bold mt-1">{stats.total}</p>
-            </div>
-            <Activity className="w-6 h-6 text-gold" />
+        <div className="card-dark p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="w-4 h-4 text-gold" />
+            <span className="text-[11px] text-gray-400">Total Signals</span>
           </div>
+          <p className="text-[24px] font-bold text-white">{stats.total}</p>
         </div>
-
-        <div className="ios-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-caption text-gray-500 dark:text-gray-400">Buy Signals</p>
-              <p className="text-title2 font-bold text-ios-green mt-1">{stats.buy}</p>
-            </div>
-            <TrendingUp className="w-6 h-6 text-ios-green" />
+        <div className="card-dark p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-ios-green" />
+            <span className="text-[11px] text-gray-400">Long</span>
           </div>
+          <p className="text-[24px] font-bold text-ios-green">{stats.buy}</p>
         </div>
-
-        <div className="ios-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-caption text-gray-500 dark:text-gray-400">Sell Signals</p>
-              <p className="text-title2 font-bold text-ios-red mt-1">{stats.sell}</p>
-            </div>
-            <AlertCircle className="w-6 h-6 text-ios-red" />
+        <div className="card-dark p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-ios-red rotate-180" />
+            <span className="text-[11px] text-gray-400">Short</span>
           </div>
+          <p className="text-[24px] font-bold text-ios-red">{stats.sell}</p>
         </div>
-
-        <div className="ios-card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-caption text-gray-500 dark:text-gray-400">Avg Strength</p>
-              <p className="text-title2 font-bold mt-1">{stats.avgStrength}%</p>
-            </div>
-            <Clock className="w-6 h-6 text-ios-blue" />
+        <div className="card-dark p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-4 h-4 text-gold" />
+            <span className="text-[11px] text-gray-400">Avg Confidence</span>
           </div>
+          <p className="text-[24px] font-bold text-white">{stats.avgStrength}%</p>
         </div>
       </div>
 
       {/* Filters */}
-      <CollapsibleSection
-        title="Filters"
-        icon={<Filter className="w-5 h-5" />}
-        defaultOpen={true}
-        badge={filteredSignals.length !== signals.length ? 'Active' : undefined}
-        badgeType="info"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-caption text-gray-600 dark:text-gray-400 mb-2 block">
-                Source
-              </label>
-              <select
-                value={selectedSource}
-                onChange={(e) => setSelectedSource(e.target.value)}
-                className="ios-input w-full"
-              >
-                {sources.map(source => (
-                  <option key={source} value={source}>
-                    {source === 'all' ? 'All Sources' : source}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-caption text-gray-600 dark:text-gray-400 mb-2 block">
-                Signal Type
-              </label>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="ios-input w-full"
-              >
-                {types.map(type => (
-                  <option key={type} value={type}>
-                    {type === 'all' ? 'All Types' : type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-caption text-gray-600 dark:text-gray-400 mb-2 block">
-                Minimum Strength
-              </label>
-              <select
-                value={selectedStrength}
-                onChange={(e) => setSelectedStrength(e.target.value)}
-                className="ios-input w-full"
-              >
-                {strengths.map(strength => (
-                  <option key={strength.value} value={strength.value}>
-                    {strength.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <CollapsibleSection title="Filters" icon={Filter} defaultOpen={false}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-[13px] text-gray-400 mb-2 block">Source</label>
+            <select
+              value={selectedSource}
+              onChange={(e) => setSelectedSource(e.target.value)}
+              className="w-full ios-input"
+            >
+              {sources.map(source => (
+                <option key={source} value={source}>{source === 'all' ? 'All Sources' : source}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[13px] text-gray-400 mb-2 block">Type</label>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-full ios-input"
+            >
+              {types.map(type => (
+                <option key={type} value={type}>{type === 'all' ? 'All Types' : type}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[13px] text-gray-400 mb-2 block">Confidence</label>
+            <select
+              value={selectedStrength}
+              onChange={(e) => setSelectedStrength(e.target.value)}
+              className="w-full ios-input"
+            >
+              {strengths.map(strength => (
+                <option key={strength.value} value={strength.value}>{strength.label}</option>
+              ))}
+            </select>
           </div>
         </div>
       </CollapsibleSection>
 
       {/* Signals List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {filteredSignals.length > 0 ? (
-          filteredSignals.map((signal, index) => (
-            <motion.div
-              key={signal.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <SignalCard
-                signal={signal}
-                onAction={(action) => console.log(`${action} signal ${signal.id}`)}
-              />
-            </motion.div>
+          filteredSignals.map(signal => (
+            <SignalCard key={signal.id} signal={signal} />
           ))
         ) : (
-          <div className="ios-card p-8 text-center">
-            <Filter className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-headline text-gray-600 dark:text-gray-400">
-              No signals match your filters
-            </p>
-            <p className="text-body text-gray-500 dark:text-gray-500 mt-1">
-              Try adjusting your filter criteria
-            </p>
+          <div className="card-dark p-12 text-center">
+            <Clock className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-[17px] text-gray-400">No signals match your filters</p>
+            <p className="text-[13px] text-gray-500 mt-2">Try adjusting your filter criteria</p>
           </div>
         )}
       </div>

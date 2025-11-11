@@ -27,7 +27,7 @@ Scalability at 500 trades:
 """
 import asyncio
 from typing import Dict, List, Optional, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import logging
 import time
@@ -42,7 +42,9 @@ from app.services.exit_strategies import (
 )
 from app.services.milestone_recorder import MilestoneRecorder
 from app.services.post_trade_analyzer import PostTradeAnalyzer
+from app.services.metrics import metrics_service
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
 
@@ -310,7 +312,7 @@ class PriceTracker:
 
         Record exact time, price, and MAE at hit
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         minutes_since_entry = (now - trade.entry_timestamp).total_seconds() / 60
 
         # Check TP1
@@ -367,7 +369,7 @@ class PriceTracker:
         """
         sample = TradePriceSample(
             trade_setup_id=trade.id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             price=Decimal(str(price)),
             pnl_pct=Decimal(str(pnl_pct)),
             max_profit_so_far=trade.max_profit_pct,
@@ -390,7 +392,7 @@ class PriceTracker:
         
         sample = TradePriceSample(
             trade_setup_id=trade.id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             price=Decimal(str(price)),
             pnl_pct=Decimal(str(pnl_pct)),
             max_profit_so_far=trade.max_profit_pct,
@@ -519,7 +521,7 @@ class PriceTracker:
         await self._force_commit_batch(db)
 
         trade.status = 'completed'
-        trade.completed_at = datetime.utcnow()
+        trade.completed_at = datetime.now(timezone.utc)
         trade.final_outcome = outcome
         trade.final_pnl_pct = Decimal(str(final_pnl))
 
@@ -557,6 +559,53 @@ class PriceTracker:
         # Run complete post-trade analysis pipeline
         await self.post_trade_analyzer.process_completed_trade(trade, outcome, final_pnl, db)
 
+        # Update Prometheus metrics (exclude baseline trades)
+        if trade.risk_strategy != 'baseline':
+            # Record trade execution with result
+            result = 'win' if final_pnl > 0 else 'loss' if final_pnl < 0 else 'breakeven'
+            metrics_service.record_trade_execution(
+                symbol=trade.symbol,
+                direction=trade.direction,
+                strategy=trade.risk_strategy or 'unknown',
+                result=result
+            )
+
+            # Update cumulative P&L (convert percentage to dollars using notional)
+            notional = float(trade.notional_position_usd) if trade.notional_position_usd else 0
+            pnl_dollars = (final_pnl / 100) * notional if notional > 0 else 0
+            metrics_service.update_cumulative_pnl(
+                strategy=trade.risk_strategy or 'unknown',
+                period='total',
+                pnl=pnl_dollars
+            )
+
+            # Calculate and update win rate from database
+            try:
+                # Query completed trades for this source and strategy
+                stmt = select(
+                    func.count(TradeSetup.id).label('total'),
+                    func.sum(func.cast(TradeSetup.final_pnl_pct > 0, func.Integer())).label('wins')
+                ).where(
+                    TradeSetup.status == 'completed',
+                    TradeSetup.risk_strategy != 'baseline',
+                    TradeSetup.webhook_source == trade.webhook_source,
+                    TradeSetup.risk_strategy == trade.risk_strategy
+                )
+                result = await db.execute(stmt)
+                row = result.first()
+
+                if row and row.total and row.total > 0:
+                    win_rate = (row.wins / row.total * 100) if row.wins else 0
+                    metrics_service.update_win_rate(
+                        source=trade.webhook_source or 'unknown',
+                        strategy=trade.risk_strategy or 'unknown',
+                        timeframe='all',
+                        rate=win_rate
+                    )
+                    logger.debug(f"📊 Updated win rate metric: {win_rate:.2f}% ({row.wins}/{row.total} wins)")
+            except Exception as e:
+                logger.error(f"Failed to update win rate metric: {e}")
+
         # Remove from active tracking
         if trade.id in self.active_trades:
             del self.active_trades[trade.id]
@@ -575,7 +624,7 @@ class PriceTracker:
         """
         while self.running:
             try:
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 timeout_threshold = now - timedelta(hours=self.TRADE_TIMEOUT_HOURS)
 
                 for trade_id, trade in list(self.active_trades.items()):

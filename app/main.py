@@ -3,7 +3,7 @@ Andre Assassin High-WR Trading System - FastAPI Backend
 """
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -23,8 +23,7 @@ from app.services.phase_manager import PhaseManager
 from app.services.websocket_manager import WebSocketManager
 from app.services.metrics import metrics_service
 from app.database.database import AsyncSessionLocal
-from app.database.connection import DatabaseManager
-from app.utils.cache import redis_client
+from app.database.connection import DatabaseManager, redis_client, init_redis
 
 # Configure comprehensive logging for weekend monitoring
 from logging_config import setup_logging
@@ -62,7 +61,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize Redis cache
     logger.info("📦 Initializing Redis cache...")
-    await redis_client.initialize()
+    await init_redis()
 
     # Initialize Bybit client
     logger.info("💱 Initializing Bybit client...")
@@ -83,7 +82,7 @@ async def lifespan(app: FastAPI):
     market_data_service = MarketDataService(bybit_client)
 
     logger.info("🔔 Initializing SignalGenerator...")
-    signal_generator = SignalGenerator(bybit_client, market_data_service)
+    signal_generator = SignalGenerator(market_data_service)
 
     logger.info("🎯 Initializing PhaseManager...")
     phase_manager = PhaseManager()
@@ -102,14 +101,14 @@ async def lifespan(app: FastAPI):
     app.state.statistics_engine = statistics_engine
 
     # Register services with routes
-    from app.api import routes
-    routes.init_services(price_tracker, statistics_engine)
+    from app.api import api_routes
+    api_routes.init_services(price_tracker, statistics_engine)
     logger.info("✅ Services initialized and registered")
 
     # Start background services
     logger.info("🚀 Starting background services...")
-    await market_data_service.start()
-    await signal_generator.start()
+    # await market_data_service.start()  # Method does not exist
+    # await signal_generator.start()  # Method does not exist
 
     # Start WebSocket tracking for active trades (in background)
     logger.info("🔌 Starting WebSocket tracking for active trades...")
@@ -143,10 +142,10 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Andre Assassin High-WR Trading System shutting down...")
 
     # Stop background services
-    if market_data_service:
-        await market_data_service.stop()
-    if signal_generator:
-        await signal_generator.stop()
+    # if market_data_service:
+    #     await market_data_service.stop()  # Method does not exist
+    # if signal_generator:
+    #     await signal_generator.stop()  # Method does not exist
 
     if price_tracker:
         logger.info("📡 Stopping WebSocket tracking...")
@@ -235,6 +234,23 @@ async def dashboard():
         )
 
 
+@app.get("/beta")
+async def beta_dashboard():
+    """Serve the beta dashboard"""
+    beta_path = static_dir / "beta.html"
+    if beta_path.exists():
+        return FileResponse(beta_path)
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "error": "Beta dashboard not found",
+                "message": "Beta dashboard file does not exist",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+
 @app.get("/phase2")
 async def phase2_dashboard():
     """Serve the Phase II Dashboard"""
@@ -267,6 +283,17 @@ async def health_check():
     }
 
 
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint"""
+    from prometheus_client import CONTENT_TYPE_LATEST
+    from app.services.metrics import metrics_service
+    return JSONResponse(
+        content=metrics_service.get_metrics().decode('utf-8'),
+        media_type=CONTENT_TYPE_LATEST
+    )
+
+
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
     """Custom 404 handler"""
@@ -280,54 +307,99 @@ async def not_found_handler(request: Request, exc):
     )
 
 
-@app.exception_handler(500)
-async def internal_error_handler(request: Request, exc):
-    """Custom 500 handler"""
-    # Force write to file to debug
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Global HTTPException handler
+    Returns structured error responses without leaking implementation details
+    """
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail if exc.status_code < 500 else "Internal Server Error",
+            "status_code": exc.status_code,
+            "timestamp": datetime.utcnow().isoformat(),
+            "path": request.url.path
+        },
+        headers=exc.headers
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """
+    Global generic exception handler
+    Logs full error details but returns safe error response to client
+    """
     import traceback
+
+    # Log full error details for debugging (with stack trace)
+    logger.error(
+        f"Unhandled exception on {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "client": request.client.host if request.client else "unknown"
+        }
+    )
+
+    # Write to file for critical errors (optional - can be removed if logs are centralized)
     try:
         with open("/tmp/webhook_error.log", "a") as f:
-            f.write(f"\n\n=== ERROR {datetime.utcnow()} ===\n")
+            f.write(f"\n\n=== UNHANDLED ERROR {datetime.utcnow()} ===\n")
+            f.write(f"Method: {request.method}\n")
             f.write(f"Path: {request.url.path}\n")
             f.write(f"Error: {exc}\n")
             f.write(traceback.format_exc())
             f.write("\n")
-    except Exception as e:
-        print(f"Failed to write error log: {e}")
-    logger.error(f"Internal server error: {exc}", exc_info=True)
+    except Exception as log_error:
+        logger.error(f"Failed to write error log: {log_error}")
+
+    # Return safe error response (NO stack traces or sensitive info)
     return JSONResponse(
         status_code=500,
         content={
             "error": "Internal Server Error",
-            "message": "An unexpected error occurred",
-            "timestamp": datetime.utcnow().isoformat()
+            "message": "An unexpected error occurred. Please contact support if this persists.",
+            "timestamp": datetime.utcnow().isoformat(),
+            "request_id": request.headers.get("X-Request-ID", "unknown")
         }
     )
 
 
+@app.exception_handler(500)
+async def internal_error_handler(request: Request, exc):
+    """Custom 500 handler (legacy - kept for backwards compatibility)"""
+    # This will be overridden by the generic Exception handler above
+    return await generic_exception_handler(request, exc)
+
+
 # Include existing API routers
-from app.api.routes import router as api_router
+from app.api.api_routes import router as api_router
 from app.api.strategy_routes import router as strategy_router
 
 # Include new API routers
-from app.api.routes.demo_trading import router as demo_trading_router
-from app.api.routes.signals import router as signals_router
-from app.api.routes.strategies import router as strategies_router
-from app.api.routes.market_data import router as market_data_router
-from app.api.routes.config import router as config_router
+# from app.api.routes.demo_trading import router as demo_trading_router  # Missing DemoPosition, DemoAccount models
+# from app.api.routes.signals import router as signals_router  # Missing SignalPerformance model
+# from app.api.routes.strategies import router as strategies_router  # File does not exist yet
+# from app.api.routes.market_data import router as market_data_router  # File does not exist yet
+# from app.api.routes.config import router as config_router  # File does not exist yet
 from app.api.routes.websocket import router as websocket_router
+from app.api.routes.beta_api import router as beta_api_router
 
 # Register existing routers
 app.include_router(api_router, prefix="/api")
 app.include_router(strategy_router, prefix="/api")
 
 # Register new routers
-app.include_router(demo_trading_router, prefix="/api/demo", tags=["Demo Trading"])
-app.include_router(signals_router, prefix="/api/signals", tags=["Signals"])
-app.include_router(strategies_router, prefix="/api/strategies", tags=["Strategies"])
-app.include_router(market_data_router, prefix="/api/market", tags=["Market Data"])
-app.include_router(config_router, prefix="/api/config", tags=["Configuration"])
-app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+# app.include_router(demo_trading_router, prefix="/api/demo", tags=["Demo Trading"])
+# app.include_router(signals_router, prefix="/api/signals", tags=["Signals"])
+# app.include_router(strategies_router, prefix="/api/strategies", tags=["Strategies"])
+# app.include_router(market_data_router, prefix="/api/market", tags=["Market Data"])
+# app.include_router(config_router, prefix="/api/config", tags=["Configuration"])
+app.include_router(websocket_router, tags=["WebSocket"])
+app.include_router(beta_api_router, prefix="/api", tags=["Beta Dashboard"])
 
 
 if __name__ == "__main__":
