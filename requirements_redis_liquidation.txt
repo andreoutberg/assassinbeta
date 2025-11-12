@@ -1,0 +1,34 @@
+# Redis and Liquidation Detector Dependencies
+# For VPS-optimized Redis storage with 256MB constraint
+
+# Core Redis
+redis[hiredis]==5.0.1  # Redis client with C parser for performance
+hiredis==2.2.3         # C parser for Redis protocol
+
+# Data Serialization
+msgpack==1.0.7         # Binary serialization (60% smaller than JSON)
+orjson==3.9.10         # Fast JSON library if needed
+
+# Monitoring and Dashboard
+rich==13.7.0           # Terminal UI for monitoring dashboard
+prometheus-client==0.19.0  # Metrics export for Grafana
+
+# Async Support
+aioredis==2.0.1        # Async Redis client (alternative)
+asyncio==3.4.3         # Async I/O support
+
+# Data Processing
+numpy==1.24.3          # Numerical operations for percentiles
+pandas==2.0.3          # Data analysis (optional, for aggregations)
+
+# Performance
+uvloop==0.19.0         # Fast event loop for async operations
+
+# Memory Profiling (Development)
+memory-profiler==0.61.0  # Memory usage profiling
+pympler==1.0.1          # Advanced memory profiling
+
+# Optional: Advanced Features
+redis-py-cluster==2.1.3  # Redis cluster support (if scaling)
+fakeredis==2.20.1       # Redis mock for testing
+redis-om==0.2.1         # Redis object mapper (optional)
