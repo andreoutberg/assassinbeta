@@ -1,0 +1,22 @@
+# Requirements for New Listing Detector
+# Install with: pip install -r requirements_listing_detector.txt
+
+# CCXT for unified exchange interface
+ccxt>=4.0.0
+ccxt-pro>=4.0.0  # WebSocket support
+
+# Async libraries
+aiohttp>=3.8.0
+websockets>=11.0
+asyncio-throttle>=1.0.0
+
+# Redis for persistence
+redis>=4.5.0
+hiredis>=2.0.0  # C parser for better performance
+
+# Utils
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Monitoring (optional)
+prometheus-client>=0.16.0
